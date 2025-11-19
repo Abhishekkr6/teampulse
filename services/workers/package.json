@@ -1,0 +1,19 @@
+{
+  "name": "workers",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --loader ts-node/esm -r dotenv/config ./worker.ts"
+  },
+  "dependencies": {
+    "bullmq": "^5.63.2",
+    "dotenv": "^17.2.3",
+    "ioredis": "^5.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
+  }
+}
