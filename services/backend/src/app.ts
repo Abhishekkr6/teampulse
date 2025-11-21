@@ -3,16 +3,29 @@ import cors from "cors";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 
-// Load env vars
 dotenv.config();
 
 const app = express();
 
-// Middlewares
+app.use(
+  "/api/v1/webhooks/github",
+  express.raw({ type: "*/*" })
+);
+
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Connection
+/* -------------------- ROUTES ------------------------ */
+import webhookRoutes from "./routes/webhook.routes.js";
+app.use("/api/v1/webhooks", webhookRoutes);
+
+import authRoutes from "./routes/auth.routes.js";
+import meRoutes from "./routes/me.routes.js";
+
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1", meRoutes);
+
+/* ---------------- MONGO CONNECTION ------------------ */
 mongoose
   .connect(process.env.MONGO_URL!)
   .then(() => console.log("MongoDB connected"))
@@ -21,15 +34,7 @@ mongoose
     process.exit(1);
   });
 
-/* --------------------- ROUTES IMPORT --------------------- */
-import authRoutes from "./routes/auth.routes.js";     // <-- Important
-import meRoutes from "./routes/me.routes.js";         // <-- Important
-
-/* --------------------- ROUTES BIND ----------------------- */
-app.use("/api/v1/auth", authRoutes);   
-app.use("/api/v1", meRoutes);
-
-/* -------------------- HEALTH CHECK ------------------------ */
+/* ---------------- HEALTH CHECK ---------------------- */
 app.get("/api/v1/health", (req, res) => {
   res.json({ success: true, data: { status: "ok" } });
 });
