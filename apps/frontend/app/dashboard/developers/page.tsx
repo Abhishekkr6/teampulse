@@ -1,31 +1,34 @@
 "use client";
 
-import DashboardLayout from "../../../../components/Layout/DashboardLayout";
+import DashboardLayout from "../../../components/Layout/DashboardLayout";
 import { useEffect, useState } from "react";
-import { api } from "../../../../lib/api";
+import { api } from "../../../lib/api";
+import Image from "next/image";
 
-type Developer = {
-  id?: string | number;
-  name: string;
+interface Developer {
+  githubId: string;
   avatarUrl: string;
+  name: string;
   commits: number;
-};
+}
 
 export default function DevelopersPage() {
   const [devs, setDevs] = useState<Developer[]>([]);
 
   useEffect(() => {
-    api.get("/dummy/developers").then((res) => setDevs(res.data.data));
+    api.get("/developers").then((res) => setDevs(res.data.data));
   }, []);
 
   return (
     <DashboardLayout>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <h1 className="text-xl font-semibold mb-4">Developers</h1>
+
+      <div className="grid grid-cols-3 gap-4">
         {devs.map((d: Developer) => (
-          <div key={d.id || d.name} className="p-4 bg-white border rounded">
-            <img
+          <div key={d.githubId} className="flex flex-col items-center p-4 bg-white rounded shadow">
+            <Image
               src={d.avatarUrl}
-              alt={`Avatar of ${d.name}`}
+              alt={`${d.name}'s avatar`}
               width={48}
               height={48}
               className="w-12 h-12 rounded-full mb-2"

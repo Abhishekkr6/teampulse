@@ -9,6 +9,7 @@ const links = [
   { name: "Alerts", href: "/dashboard/alerts" },
   { name: "Developers", href: "/dashboard/developers" },
   { name: "Repos", href: "/dashboard/repos" },
+  { name: "Organization", href: "/organization" },
 ];
 
 export default function Sidebar() {

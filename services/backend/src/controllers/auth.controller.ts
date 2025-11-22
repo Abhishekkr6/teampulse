@@ -23,6 +23,7 @@ export const githubCallback = async (req: Request, res: Response) => {
     if (!user) {
       user = await UserModel.create({
         githubId: ghUser.id,
+        login: ghUser.login,
         name: ghUser.name,
         avatarUrl: ghUser.avatar_url,
         email,
