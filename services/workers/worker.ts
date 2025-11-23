@@ -1,48 +1,41 @@
 import { Worker } from "bullmq";
 import Redis from "ioredis";
 import "dotenv/config";
+import { commitProcessingHandler } from "./processors/commitProcessing.js";
+import { prAnalysisHandler } from "./processors/prAnalysis.js";
 
 const connection = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379", {
   maxRetriesPerRequest: null,
-  enableReadyCheck: false
+  enableReadyCheck: false,
 });
 
 const commitWorker = new Worker(
   "commit-processing",
-  async (job) => {
-    console.log("🔧 Processing commit job:", job.data);
-
-    // Simulate heavy logic
-    await new Promise((res) => setTimeout(res, 1000));
-
-    return { status: "commit-processed" };
-  },
+  commitProcessingHandler,
   { connection }
 );
 
 const prWorker = new Worker(
   "pr-analysis",
-  async (job) => {
-    console.log("📝 Processing PR job:", job.data);
-
-    // Simulate PR risk score logic
-    await new Promise((res) => setTimeout(res, 1000));
-
-    return { status: "pr-analyzed" };
-  },
+  prAnalysisHandler,
   { connection }
 );
 
-const metricsWorker = new Worker(
-  "metrics",
-  async (job) => {
-    console.log("📊 Processing metrics job:", job.name, job.data);
 
-    await new Promise((res) => setTimeout(res, 1000));
+commitWorker.on("completed", (job) => {
+  console.log(`✅ [commit-processing] job ${job.id} completed`);
+});
 
-    return { status: "metrics-done" };
-  },
-  { connection }
-);
+commitWorker.on("failed", (job, err) => {
+  console.error(`❌ [commit-processing] job ${job?.id} failed:`, err.message);
+});
 
-console.log("🚀 Worker service started (commit + PR + metrics)...");
+prWorker.on("completed", (job) => {
+  console.log(`✅ [pr-analysis] job ${job.id} completed`);
+});
+
+prWorker.on("failed", (job, err) => {
+  console.error(`❌ [pr-analysis] job ${job?.id} failed:`, err.message);
+});
+
+console.log("🚀 Worker service started (commit-processing + pr-analysis)...");

@@ -1,8 +1,10 @@
 {
   "dependencies": {
+    "@types/mongoose": "^5.11.96",
     "axios": "^1.13.2",
     "bullmq": "^5.64.1",
     "ioredis": "^5.8.2",
+    "mongoose": "^9.0.0",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
