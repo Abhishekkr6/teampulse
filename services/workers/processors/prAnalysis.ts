@@ -1,29 +1,37 @@
 import { Job } from "bullmq";
 import mongoose from "mongoose";
+import "dotenv/config";
+
 import { PRModel } from "../backendModels/pr.model.js";
 import { AlertModel } from "../backendModels/alert.model.js";
-import "dotenv/config";
 
 const MONGO_URL =
   process.env.MONGO_URL || "mongodb://localhost:27017/teampulse";
 
+// Connect Mongo only once
 if (!mongoose.connection.readyState) {
   mongoose
     .connect(MONGO_URL)
     .then(() => console.log("[worker] Mongo connected for PRs"))
-    .catch((err) => console.log("Mongo error", err));
+    .catch((err) => console.log("[worker] Mongo error", err));
 }
 
 const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
 
+// ⭐ LOWERED threshold for testing (so alerts WILL trigger)
+const HIGH_RISK_THRESHOLD = 0.4; // earlier was 0.6 — too high
+
 export const prAnalysisHandler = async (job: Job) => {
   try {
+    console.log("[pr-analysis] job received:", job.data);
+
     const { prId } = job.data as { prId: string };
 
     const pr = await PRModel.findById(prId);
+
     if (!pr) {
-      console.log("[pr-analysis] PR not found", prId);
+      console.log("[pr-analysis] PR not found:", prId);
       return;
     }
 
@@ -35,7 +43,7 @@ export const prAnalysisHandler = async (job: Job) => {
     const dels = pr.deletions || 0;
 
     /* -----------------------------------------------------
-       2. NORMALIZED SCORES
+       2. NORMALIZED VALUES
     ------------------------------------------------------*/
     const fScore = clamp(files / 20, 0, 1);
     const aScore = clamp(adds / 1000, 0, 1);
@@ -45,10 +53,11 @@ export const prAnalysisHandler = async (job: Job) => {
     const created = pr.createdAt || now;
     const hoursOpen =
       (now.getTime() - created.getTime()) / (1000 * 60 * 60);
+
     const timeScore = clamp(hoursOpen / 72, 0, 1);
 
     /* -----------------------------------------------------
-       3. WEIGHTED RISK SCORE
+       3. WEIGHT COMBINATION
     ------------------------------------------------------*/
     const risk =
       0.35 * fScore +
@@ -61,15 +70,19 @@ export const prAnalysisHandler = async (job: Job) => {
     await pr.save();
 
     console.log(
-      `[pr-analysis] PR #${pr.number} risk=${pr.riskScore}`
+      `[pr-analysis] PR #${pr.number} risk calculated = ${pr.riskScore}`
     );
 
     /* -----------------------------------------------------
-       4. ALERT: HIGH RISK PR
+       4. ALERT CREATION (IMPORTANT PART)
     ------------------------------------------------------*/
-    if (pr.riskScore > 0.6) {
+    if (pr.riskScore >= HIGH_RISK_THRESHOLD) {
+      console.log(
+        `[alert] HIGH RISK DETECTED for PR #${pr.number} (score=${pr.riskScore})`
+      );
+
       await AlertModel.create({
-        orgId: null, // TODO: link via repo.orgId when repo model is extended
+        orgId: null, // TODO: map repo.orgId later
         repoId: pr.repoId,
         type: "HIGH_RISK_PR",
         severity: "high",
@@ -86,7 +99,11 @@ export const prAnalysisHandler = async (job: Job) => {
       });
 
       console.log(
-        `[alert] HIGH_RISK_PR created for PR #${pr.number} (${pr.riskScore})`
+        `[alert] ALERT CREATED SUCCESSFULLY for PR #${pr.number}`
+      );
+    } else {
+      console.log(
+        `[alert] PR #${pr.number} risk too low (${pr.riskScore}) — alert not created`
       );
     }
   } catch (err) {
