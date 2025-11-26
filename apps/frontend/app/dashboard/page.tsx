@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/Layout/DashboardLayout";
 import { api } from "../../lib/api";
+import { useLiveStore } from "../../store/liveStore"; 
 
 export default function DashboardPage() {
   type Stats = {
@@ -16,10 +17,29 @@ export default function DashboardPage() {
 
   const [stats, setStats] = useState<Stats | null>(null);
 
-  useEffect(() => {
+  const { lastEvent } = useLiveStore();
+
+  const loadStats = () => {
     const orgId = localStorage.getItem("orgId");
-    api.get(`/orgs/${orgId}/dashboard`).then((res) => setStats(res.data.data));
+    if (!orgId) return;
+
+    api.get(`/orgs/${orgId}/dashboard`)
+      .then((res) => setStats(res.data.data))
+      .catch(() => {});
+  };
+
+  // initial load
+  useEffect(() => {
+    loadStats();
   }, []);
+
+  useEffect(() => {
+    if (!lastEvent) return;
+
+    if (lastEvent.type === "PR_UPDATED" || lastEvent.type === "NEW_ALERT") {
+      loadStats();
+    }
+  }, [lastEvent]);
 
   if (!stats) return <DashboardLayout>Loading...</DashboardLayout>;
 
