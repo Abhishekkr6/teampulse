@@ -66,7 +66,10 @@ export const prAnalysisHandler = async (job: Job) => {
     pr.processed = true;
     await pr.save();
 
-    const redis = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379");
+    const redis = new Redis(process.env.REDIS_URL!, {
+      tls: { rejectUnauthorized: false },
+      maxRetriesPerRequest: null,
+    });
 
     redis.publish(
       "events",
