@@ -3,8 +3,8 @@ import mongoose from "mongoose";
 import "dotenv/config";
 import Redis from "ioredis";
 
-import { PRModel } from "../../src/backendModels/pr.model";
-import { AlertModel } from "../../src/backendModels/alert.model";
+import { PRModel } from "../models/pr.model";
+import { AlertModel } from "../models/alert.model";
 
 const MONGO_URL =
   process.env.MONGO_URL || "mongodb://localhost:27017/teampulse";
