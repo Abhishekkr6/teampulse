@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import { verifyGithubSignature } from "../utils/verifySignature.js";
-import { CommitModel } from "../models/commit.model.js";
-import { PRModel } from "../models/pr.model.js";
-import { RepoModel } from "../models/repo.model.js";
+import { verifyGithubSignature } from "../utils/verifySignature";
+import { CommitModel } from "../models/commit.model";
+import { PRModel } from "../models/pr.model";
+import { RepoModel } from "../models/repo.model";
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
 

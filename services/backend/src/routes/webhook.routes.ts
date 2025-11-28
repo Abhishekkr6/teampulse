@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { githubWebhookHandler } from "../controllers/webhook.controller.js";
+import { githubWebhookHandler } from "../controllers/webhook.controller";
 
 const router = Router();
 

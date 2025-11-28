@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { CommitModel } from "../models/commit.model.js";
-import { PRModel } from "../models/pr.model.js";
-import { AlertModel } from "../models/alert.model.js";
+import { CommitModel } from "../models/commit.model";
+import { PRModel } from "../models/pr.model";
+import { AlertModel } from "../models/alert.model";
 
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {

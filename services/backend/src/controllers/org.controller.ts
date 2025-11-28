@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { OrgModel } from "../models/org.model.js";
+import { OrgModel } from "../models/org.model";
 
 export const createOrg = async (req: any, res: Response) => {
   try {

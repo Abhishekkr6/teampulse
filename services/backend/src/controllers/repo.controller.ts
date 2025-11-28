@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { RepoModel } from "../models/repo.model.js";
+import { RepoModel } from "../models/repo.model";
 
 export const getRepos = async (req: Request, res: Response) => {
   try {

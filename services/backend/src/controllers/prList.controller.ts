@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { PRModel } from "../models/pr.model.js";
+import { PRModel } from "../models/pr.model";
 
 export const listPRs = async (req: Request, res: Response) => {
   try {

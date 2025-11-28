@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { createOrg } from "../controllers/org.controller.js";
-import { getRepos } from "../controllers/repo.controller.js";
-import { connectRepo } from "../controllers/repoConnect.controller.js";
+import { createOrg } from "../controllers/org.controller";
+import { getRepos } from "../controllers/repo.controller";
+import { connectRepo } from "../controllers/repoConnect.controller";
 
 const router = Router();
 

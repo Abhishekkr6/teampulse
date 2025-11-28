@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { AlertModel } from "../models/alert.model.js";
+import { AlertModel } from "../models/alert.model";
 
 export const getAlertSummary = async (req: Request, res: Response) => {
   try {
