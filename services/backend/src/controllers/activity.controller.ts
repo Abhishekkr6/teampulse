@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { CommitModel } from "../models/commit.model.js";
+import { CommitModel } from "../models/commit.model";
 
 export const getCommitTimeline = async (req: Request, res: Response) => {
   try {

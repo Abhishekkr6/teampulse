@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { getDashboardStats } from "../controllers/dashboard.controller.js";
-import { getCommitTimeline } from "../controllers/activity.controller.js";
-import { getDevelopers } from "../controllers/developer.controller.js";
-import { listPRs } from "../controllers/prList.controller.js";
-import { getAlertSummary } from "../controllers/alertSummary.controller.js";
+import { getDashboardStats } from "../controllers/dashboard.controller";
+import { getCommitTimeline } from "../controllers/activity.controller";
+import { getDevelopers } from "../controllers/developer.controller";
+import { listPRs } from "../controllers/prList.controller";
+import { getAlertSummary } from "../controllers/alertSummary.controller";
 
 const router = Router();
 

@@ -1,18 +1,15 @@
-import type { Server as HTTPServer } from "http";
 import { WebSocketServer } from "ws";
 import Redis from "ioredis";
 
-export const startWSServer = (server: HTTPServer) => {
+export const attachWebSocket = (server: any) => {
   const wss = new WebSocketServer({ server });
-  const redis = new Redis(process.env.REDIS_URL!, {
-    tls: { rejectUnauthorized: false },
-    maxRetriesPerRequest: null,
-  });
 
-  console.log("[WS] WebSocket server listening on shared HTTP port");
+  console.log("[WS] WebSocket attached to Express server");
+
+  const redis = new Redis(process.env.REDIS_URL || "");
 
   redis.subscribe("events", () => {
-    console.log("[WS] Subscribed to Redis channel: events");
+    console.log("[WS] Subscribed to Redis events");
   });
 
   redis.on("message", (_, message) => {
@@ -21,9 +18,7 @@ export const startWSServer = (server: HTTPServer) => {
     wss.clients.forEach((client) => {
       try {
         client.send(JSON.stringify(event));
-      } catch (e) {
-        console.log("[WS] Error sending event", e);
-      }
+      } catch {}
     });
   });
 };

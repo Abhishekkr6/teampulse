@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { exchangeCodeForToken, getGithubUser, getGithubEmail } from "../services/github.service.js";
-import { UserModel } from "../models/user.model.js";
-import { createToken } from "../services/jwt.service.js";
+import { exchangeCodeForToken, getGithubUser, getGithubEmail } from "../services/github.service";
+import { UserModel } from "../models/user.model";
+import { createToken } from "../services/jwt.service";
 
 export const githubLogin = async (req: Request, res: Response) => {
   const clientId = process.env.GITHUB_CLIENT_ID;

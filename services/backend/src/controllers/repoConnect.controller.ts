@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { RepoModel } from "../models/repo.model.js";
+import { RepoModel } from "../models/repo.model";
 import crypto from "crypto";
 
 export const connectRepo = async (req: any, res: Response) => {

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { CommitModel } from "../models/commit.model.js";
-import { UserModel } from "../models/user.model.js";
+import { CommitModel } from "../models/commit.model";
+import { UserModel } from "../models/user.model";
 
 export const getDevelopers = async (req: Request, res: Response) => {
   try {
