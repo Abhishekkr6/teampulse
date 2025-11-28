@@ -1,7 +1,10 @@
 import { Queue } from "bullmq";
-import IORedis from "ioredis";
+import Redis from "ioredis";
 
-const connection = new IORedis(process.env.REDIS_URL || "redis://127.0.0.1:6379");
+const connection = new Redis(process.env.REDIS_URL, {
+  tls: { rejectUnauthorized: false },
+  maxRetriesPerRequest: null,
+});
 
 const commitQueue = new Queue("commit-processing", { connection });
 const prQueue = new Queue("pr-analysis", { connection });

@@ -1,19 +1,13 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const app = express();
 
 /* -----------------------------------------------------
    1) RAW BODY FOR GITHUB → MUST BE FIRST
 ------------------------------------------------------ */
-app.use(
-  "/api/v1/webhooks/github",
-  express.raw({ type: "application/json" })
-);
+app.use("/api/v1/webhooks/github", express.raw({ type: "application/json" }));
 
 /* -----------------------------------------------------
    2) REGISTER WEBHOOK ROUTES IMMEDIATELY AFTER RAW
@@ -26,6 +20,11 @@ app.use("/api/v1/webhooks", webhookRoutes);
 ------------------------------------------------------ */
 app.use(express.json());
 app.use(cors());
+
+
+app.get("/api/v1/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
 
 /* -----------------------------------------------------
    4) OTHER ROUTES

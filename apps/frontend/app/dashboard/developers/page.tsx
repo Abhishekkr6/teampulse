@@ -16,25 +16,50 @@ export default function DevelopersPage() {
   const [devs, setDevs] = useState<Developer[]>([]);
 
   useEffect(() => {
-    api.get("/developers").then((res) => setDevs(res.data.data));
+    api.get("/developers").then((res) => setDevs(res.data.data || []));
   }, []);
 
   return (
     <DashboardLayout>
-      <h1 className="text-xl font-semibold mb-4">Developers</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Developers</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Activity overview of all contributors
+        </p>
+      </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        {devs.map((d: Developer) => (
-          <div key={d.githubId} className="flex flex-col items-center p-4 bg-white rounded shadow">
-            <Image
-              src={d.avatarUrl}
-              alt={`${d.name}'s avatar`}
-              width={48}
-              height={48}
-              className="w-12 h-12 rounded-full mb-2"
-            />
-            <div className="font-bold">{d.name}</div>
-            <div className="text-sm text-gray-600">Commits: {d.commits}</div>
+      {devs.length === 0 && (
+        <div className="text-gray-500 text-sm">
+          No developer activity found. Once commits are pushed, developers will appear here.
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {devs.map((d) => (
+          <div
+            key={d.githubId}
+            className="p-5 bg-white border border-gray-200 rounded-xl shadow-sm transition hover:shadow-md"
+          >
+            {/* Header */}
+            <div className="flex items-center gap-4 mb-4">
+              <Image
+                src={d.avatarUrl}
+                alt={d.name}
+                width={56}
+                height={56}
+                className="rounded-full border"
+              />
+              <div>
+                <div className="font-semibold text-gray-900">{d.name}</div>
+                <div className="text-xs text-gray-500">{d.githubId}</div>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Commits</span>
+              <span className="font-semibold text-gray-900">{d.commits}</span>
+            </div>
           </div>
         ))}
       </div>

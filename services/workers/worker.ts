@@ -1,26 +1,19 @@
 import { Worker } from "bullmq";
 import Redis from "ioredis";
 import "dotenv/config";
-import { commitProcessingHandler } from "./processors/commitProcessing.js";
-import { prAnalysisHandler } from "./processors/prAnalysis.js";
+import { commitProcessingHandler } from "./processors/commitProcessing";
+import { prAnalysisHandler } from "./processors/prAnalysis";
 
-const connection = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379", {
+const connection = new Redis(process.env.REDIS_URL!, {
+  tls: { rejectUnauthorized: false },
   maxRetriesPerRequest: null,
-  enableReadyCheck: false,
 });
 
-const commitWorker = new Worker(
-  "commit-processing",
-  commitProcessingHandler,
-  { connection }
-);
+const commitWorker = new Worker("commit-processing", commitProcessingHandler, {
+  connection,
+});
 
-const prWorker = new Worker(
-  "pr-analysis",
-  prAnalysisHandler,
-  { connection }
-);
-
+const prWorker = new Worker("pr-analysis", prAnalysisHandler, { connection });
 
 commitWorker.on("completed", (job) => {
   console.log(`✅ [commit-processing] job ${job.id} completed`);

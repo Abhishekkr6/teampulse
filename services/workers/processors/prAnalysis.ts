@@ -1,6 +1,7 @@
 import { Job } from "bullmq";
 import mongoose from "mongoose";
 import "dotenv/config";
+import Redis from "ioredis";
 
 import { PRModel } from "../backendModels/pr.model.js";
 import { AlertModel } from "../backendModels/alert.model.js";
@@ -51,8 +52,7 @@ export const prAnalysisHandler = async (job: Job) => {
 
     const now = new Date();
     const created = pr.createdAt || now;
-    const hoursOpen =
-      (now.getTime() - created.getTime()) / (1000 * 60 * 60);
+    const hoursOpen = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
 
     const timeScore = clamp(hoursOpen / 72, 0, 1);
 
@@ -60,14 +60,29 @@ export const prAnalysisHandler = async (job: Job) => {
        3. WEIGHT COMBINATION
     ------------------------------------------------------*/
     const risk =
-      0.35 * fScore +
-      0.25 * aScore +
-      0.15 * dScore +
-      0.25 * timeScore;
+      0.35 * fScore + 0.25 * aScore + 0.15 * dScore + 0.25 * timeScore;
 
     pr.riskScore = +risk.toFixed(2);
     pr.processed = true;
     await pr.save();
+
+    const redis = new Redis(process.env.REDIS_URL!, {
+      tls: { rejectUnauthorized: false },
+      maxRetriesPerRequest: null,
+    });
+
+    redis.publish(
+      "events",
+      JSON.stringify({
+        type: "PR_UPDATED",
+        prId: pr._id,
+        repoId: pr.repoId,
+        number: pr.number,
+        title: pr.title,
+        riskScore: pr.riskScore,
+        timestamp: Date.now(),
+      })
+    );
 
     console.log(
       `[pr-analysis] PR #${pr.number} risk calculated = ${pr.riskScore}`
@@ -98,9 +113,20 @@ export const prAnalysisHandler = async (job: Job) => {
         },
       });
 
-      console.log(
-        `[alert] ALERT CREATED SUCCESSFULLY for PR #${pr.number}`
+      redis.publish(
+        "events",
+        JSON.stringify({
+          type: "NEW_ALERT",
+          alertType: "HIGH_RISK_PR",
+          prNumber: pr.number,
+          prTitle: pr.title,
+          riskScore: pr.riskScore,
+          repoId: pr.repoId,
+          timestamp: Date.now(),
+        })
       );
+
+      console.log(`[alert] ALERT CREATED SUCCESSFULLY for PR #${pr.number}`);
     } else {
       console.log(
         `[alert] PR #${pr.number} risk too low (${pr.riskScore}) — alert not created`
