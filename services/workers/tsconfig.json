@@ -6,8 +6,15 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "strict": true,
+
+    "rootDir": "src",
     "outDir": "dist",
-    "rootDir": "."
+
+    "skipLibCheck": true,
+    "types": ["node"],
+
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["./"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

@@ -1,6 +1,6 @@
 import { Job } from "bullmq";
 import mongoose from "mongoose";
-import { CommitModel } from "../backendModels/commit.model.js";
+import { CommitModel } from "../../src/backendModels/commit.model";
 import "dotenv/config";
 
 const MONGO_URL = process.env.MONGO_URL || "mongodb://localhost:27017/teampulse";
