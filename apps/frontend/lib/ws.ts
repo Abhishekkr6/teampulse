@@ -1,3 +1,5 @@
+"use client";
+
 let socket: WebSocket | null = null;
 const listeners: ((event: unknown) => void)[] = [];
 
