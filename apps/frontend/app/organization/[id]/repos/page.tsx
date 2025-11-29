@@ -4,9 +4,8 @@ interface RepoPageWrapperProps {
   params: { id: string };
 }
 
-export default async function RepoPageWrapper({ params }: RepoPageWrapperProps) {
-  const resolved = await params;  
-  const orgId = resolved.id;      
-
+export default function RepoPageWrapper({ params }: RepoPageWrapperProps) {
+  const orgId = params.id;
   return <RepoPageClient orgId={orgId} />;
 }
+
