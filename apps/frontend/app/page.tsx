@@ -21,7 +21,7 @@ export default function HomePage() {
   return (
     <div className="w-full h-screen flex items-center justify-center">
       <a
-        href="http://localhost:4000/api/v1/auth/github/login"
+        href="https://teampulse18.vercel.app/api/v1/auth/github/login"
         className="px-6 py-3 bg-black text-white rounded-lg"
       >
         Login with GitHub
