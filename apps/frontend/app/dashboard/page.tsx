@@ -20,6 +20,7 @@ type Stats = {
 };
 
 export default function DashboardPage() {
+  const [missingOrg, setMissingOrg] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
   type TimelineEntry = {
     date: string;
@@ -39,8 +40,13 @@ export default function DashboardPage() {
   const loadData = async () => {
     try {
       const orgId = localStorage.getItem("orgId");
-      if (!orgId) return;
+      if (!orgId) {
+        setMissingOrg(true);
+        setLoading(false);
+        return;
+      }
 
+      setMissingOrg(false);
       setLoading(true);
 
       const [dashRes, timelineRes, prsRes] = await Promise.all([
@@ -97,6 +103,19 @@ export default function DashboardPage() {
   // Loading skeleton
   // -----------------------------
   if (loading || !stats) {
+    if (missingOrg) {
+      return (
+        <DashboardLayout>
+          <div className="p-6 space-y-2 text-sm text-gray-600">
+            <p>No organization is selected.</p>
+            <p>
+              Visit the <a href="/organization" className="text-blue-600 underline">organization page</a> to create or choose one before viewing the dashboard.
+            </p>
+          </div>
+        </DashboardLayout>
+      );
+    }
+
     return (
       <DashboardLayout>
         <div className="p-4 text-gray-500 text-sm">Loading dashboard...</div>
