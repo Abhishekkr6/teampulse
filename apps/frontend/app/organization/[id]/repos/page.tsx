@@ -1,11 +1,11 @@
 import RepoPageClient from "./RepoPageClient";
 
 interface RepoPageWrapperProps {
-  params: { id: string };
+  params: { orgId: string };
 }
 
 export default function RepoPageWrapper({ params }: RepoPageWrapperProps) {
-  const orgId = params.id;
+  const orgId = params.orgId;
   return <RepoPageClient orgId={orgId} />;
 }
 

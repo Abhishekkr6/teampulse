@@ -15,7 +15,8 @@ export default function RepoPageClient({ orgId }: { orgId: string }) {
   useEffect(() => {
     if (!orgId) return;
 
-    api.get(`/orgs/${orgId}/repos`)
+    api
+      .get(`/orgs/${orgId}/repos`)
       .then((res) => setRepos(res.data.data))
       .catch(() => {});
   }, [orgId]);
@@ -24,8 +25,16 @@ export default function RepoPageClient({ orgId }: { orgId: string }) {
     console.log("repoFullName =", repoFullName);
     console.log("orgId =", orgId);
 
+    const [owner, repo] = repoFullName.split("/");
+
+    if (!owner || !repo) {
+      alert("Invalid repo format. Use owner/repo");
+      return;
+    }
+
     const res = await api.post(`/orgs/${orgId}/repos/connect`, {
-      repoFullName,
+      owner,
+      repo,
     });
 
     setRepos((prev) => [...prev, res.data.data]);
