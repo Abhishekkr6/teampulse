@@ -22,22 +22,24 @@ export default function RepoPageClient({ orgId }: { orgId: string }) {
   }, [orgId]);
 
   const connectRepo = async () => {
-    console.log("repoFullName =", repoFullName);
-    console.log("orgId =", orgId);
+    const trimmed = repoFullName.trim();
 
-    const [owner, repo] = repoFullName.split("/");
+    if (!orgId) {
+      console.warn("Missing orgId while attempting to connect repo");
+      return;
+    }
 
-    if (!owner || !repo) {
+    if (!trimmed.includes("/")) {
       alert("Invalid repo format. Use owner/repo");
       return;
     }
 
     const res = await api.post(`/orgs/${orgId}/repos/connect`, {
-      owner,
-      repo,
+      repoFullName: trimmed,
     });
 
     setRepos((prev) => [...prev, res.data.data]);
+    setRepoFullName("");
   };
 
   return (
