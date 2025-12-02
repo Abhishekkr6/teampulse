@@ -5,6 +5,7 @@ import { PRModel } from "../models/pr.model";
 import { RepoModel } from "../models/repo.model";
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
+import logger from "../utils/logger";
 
 /* -------------------------------------------
    FIXED REDIS CONNECTION FOR UPSTASH
@@ -33,7 +34,7 @@ export const githubWebhookHandler = async (req: Request, res: Response) => {
     const rawBody = req.body as Buffer;
 
     if (!rawBody) {
-      console.log("❌ raw body missing");
+      logger.error("❌ raw body missing");
       return res.status(400).json({ success: false, message: "No raw body" });
     }
 
@@ -44,13 +45,13 @@ export const githubWebhookHandler = async (req: Request, res: Response) => {
 
     const fullRepoName = payload.repository?.full_name;
     if (!fullRepoName) {
-      console.log("⚠️ Missing repo name in payload");
+      logger.warn("⚠️ Missing repo name in payload");
       return res.status(200).json({ success: true });
     }
 
     const repo = await RepoModel.findOne({ name: fullRepoName });
     if (!repo) {
-      console.log("⚠️ Unknown repo:", fullRepoName);
+      logger.warn({ repo: fullRepoName }, "⚠️ Unknown repo");
       return res.status(200).send("OK");
     }
 
@@ -61,7 +62,7 @@ export const githubWebhookHandler = async (req: Request, res: Response) => {
     );
 
     if (!valid) {
-      console.log("❌ Invalid signature");
+      logger.warn({ repo: fullRepoName }, "❌ Invalid signature");
       return res.status(401).json({ success: false, message: "Bad signature" });
     }
 
@@ -93,7 +94,7 @@ export const githubWebhookHandler = async (req: Request, res: Response) => {
         commitIds: commitDocs.map((d) => d._id),
       });
 
-      console.log("✅ Push event processed");
+      logger.info({ repoId: repo._id, commits: commits.length }, "✅ Push event processed");
     }
 
     if (event === "pull_request") {
@@ -124,12 +125,12 @@ export const githubWebhookHandler = async (req: Request, res: Response) => {
         trigger: "webhook",
       });
 
-      console.log("✅ PR event processed");
+      logger.info({ repoId: repo._id, prNumber: pr.number }, "✅ PR event processed");
     }
 
     return res.status(200).json({ success: true });
   } catch (err) {
-    console.log("❌ Webhook Error:", err);
+    logger.error({ err }, "❌ Webhook Error");
     return res.status(500).json({ success: false });
   }
 };

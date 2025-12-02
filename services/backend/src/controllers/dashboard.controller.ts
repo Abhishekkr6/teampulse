@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { CommitModel } from "../models/commit.model";
 import { PRModel } from "../models/pr.model";
 import { AlertModel } from "../models/alert.model";
+import logger from "../utils/logger";
 
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
@@ -59,7 +60,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       },
     });
   } catch (err) {
-    console.log("Dashboard error", err);
+    logger.error({ err }, "Dashboard error");
     return res.status(500).json({ success: false });
   }
 };

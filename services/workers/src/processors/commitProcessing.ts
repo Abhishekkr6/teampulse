@@ -2,11 +2,15 @@ import { Job } from "bullmq";
 import mongoose from "mongoose";
 import { CommitModel } from "../models/commit.model";
 import "dotenv/config";
+import logger from "../utils/logger";
 
 const MONGO_URL = process.env.MONGO_URL || "mongodb://localhost:27017/teampulse";
 
 if (!mongoose.connection.readyState) {
-  mongoose.connect(MONGO_URL).then(() => console.log("[worker] Mongo connected for commits"));
+  mongoose
+    .connect(MONGO_URL)
+    .then(() => logger.info("[worker] Mongo connected for commits"))
+    .catch((err) => logger.error({ err }, "[worker] Mongo connection error for commits"));
 }
 
 export const commitProcessingHandler = async (job: Job) => {
@@ -23,5 +27,5 @@ export const commitProcessingHandler = async (job: Job) => {
     await c.save();
   }
 
-  console.log(`[commit-processing] processed ${commits.length} commits for repo ${repoId}`);
+  logger.info({ repoId, commitCount: commits.length }, "[commit-processing] commits processed");
 };

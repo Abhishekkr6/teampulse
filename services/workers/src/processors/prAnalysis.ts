@@ -5,6 +5,7 @@ import Redis from "ioredis";
 
 import { PRModel } from "../models/pr.model";
 import { AlertModel } from "../models/alert.model";
+import logger from "../utils/logger";
 
 const MONGO_URL =
   process.env.MONGO_URL || "mongodb://localhost:27017/teampulse";
@@ -13,8 +14,8 @@ const MONGO_URL =
 if (!mongoose.connection.readyState) {
   mongoose
     .connect(MONGO_URL)
-    .then(() => console.log("[worker] Mongo connected for PRs"))
-    .catch((err) => console.log("[worker] Mongo error", err));
+    .then(() => logger.info("[worker] Mongo connected for PRs"))
+    .catch((err) => logger.error({ err }, "[worker] Mongo error"));
 }
 
 const clamp = (n: number, min: number, max: number) =>
@@ -25,14 +26,14 @@ const HIGH_RISK_THRESHOLD = 0.4; // earlier was 0.6 — too high
 
 export const prAnalysisHandler = async (job: Job) => {
   try {
-    console.log("[pr-analysis] job received:", job.data);
+    logger.info({ jobData: job.data }, "[pr-analysis] job received");
 
     const { prId } = job.data as { prId: string };
 
     const pr = await PRModel.findById(prId);
 
     if (!pr) {
-      console.log("[pr-analysis] PR not found:", prId);
+      logger.warn({ prId }, "[pr-analysis] PR not found");
       return;
     }
 
@@ -84,17 +85,13 @@ export const prAnalysisHandler = async (job: Job) => {
       })
     );
 
-    console.log(
-      `[pr-analysis] PR #${pr.number} risk calculated = ${pr.riskScore}`
-    );
+    logger.info({ prNumber: pr.number, riskScore: pr.riskScore }, "[pr-analysis] risk calculated");
 
     /* -----------------------------------------------------
        4. ALERT CREATION (IMPORTANT PART)
     ------------------------------------------------------*/
     if (pr.riskScore >= HIGH_RISK_THRESHOLD) {
-      console.log(
-        `[alert] HIGH RISK DETECTED for PR #${pr.number} (score=${pr.riskScore})`
-      );
+      logger.warn({ prNumber: pr.number, riskScore: pr.riskScore }, "[alert] HIGH RISK DETECTED");
 
       await AlertModel.create({
         orgId: null, // TODO: map repo.orgId later
@@ -126,13 +123,11 @@ export const prAnalysisHandler = async (job: Job) => {
         })
       );
 
-      console.log(`[alert] ALERT CREATED SUCCESSFULLY for PR #${pr.number}`);
+      logger.info({ prNumber: pr.number }, "[alert] ALERT CREATED SUCCESSFULLY");
     } else {
-      console.log(
-        `[alert] PR #${pr.number} risk too low (${pr.riskScore}) — alert not created`
-      );
+      logger.info({ prNumber: pr.number, riskScore: pr.riskScore }, "[alert] risk below threshold, alert not created");
     }
   } catch (err) {
-    console.log("[pr-analysis] Error:", err);
+    logger.error({ err, jobId: job.id }, "[pr-analysis] Error");
   }
 };

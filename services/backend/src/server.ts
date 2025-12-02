@@ -13,3 +13,11 @@ server.listen(PORT, () => {
 });
 
 attachWebSocket(server);
+
+process.on("uncaughtException", (err) => {
+  logger.error({ err }, "💥 Uncaught Exception — backend crashed");
+});
+
+process.on("unhandledRejection", (reason) => {
+  logger.error({ reason }, "⚠️ Unhandled Promise Rejection — backend");
+});
