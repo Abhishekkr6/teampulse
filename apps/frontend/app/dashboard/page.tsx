@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import DashboardLayout from "../../components/Layout/DashboardLayout";
 import { api } from "../../lib/api";
 import { useLiveStore } from "../../store/liveStore";
@@ -33,12 +34,24 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   const { lastEvent } = useLiveStore();
+  const router = useRouter();
 
   // -----------------------------
   // Fetch dashboard data
   // -----------------------------
   const loadData = async () => {
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        router.replace("/login");
+        setStats(null);
+        setTimeline([]);
+        setRiskBuckets([]);
+        setMissingOrg(false);
+        setLoading(false);
+        return;
+      }
+
       const orgId = localStorage.getItem("orgId");
       if (!orgId) {
         setMissingOrg(true);
@@ -78,7 +91,16 @@ export default function DashboardPage() {
       });
 
       setRiskBuckets(buckets);
-    } catch (e) {
+    } catch (e: unknown) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 401) {
+        router.replace("/login");
+        setStats(null);
+        setTimeline([]);
+        setRiskBuckets([]);
+        setMissingOrg(false);
+      }
+
       console.log("Dashboard load error:", e);
     } finally {
       setLoading(false);
