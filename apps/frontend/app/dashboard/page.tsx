@@ -43,7 +43,7 @@ export default function DashboardPage() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        router.replace("/login");
+        router.replace("/");
         setStats(null);
         setTimeline([]);
         setRiskBuckets([]);
