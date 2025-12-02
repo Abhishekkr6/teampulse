@@ -8,23 +8,32 @@ type Repo = {
   name: string;
 };
 
-export default function RepoPageClient({ orgId }: { orgId: string }) {
+export default function RepoPageClient({ orgId }: { orgId?: string }) {
   const [repoFullName, setRepoFullName] = useState("");
   const [repos, setRepos] = useState<Repo[]>([]);
+  const currentOrgId =
+    orgId ??
+    (typeof window !== "undefined" ? localStorage.getItem("orgId") ?? "" : "");
 
   useEffect(() => {
-    if (!orgId) return;
+    if (orgId) {
+      localStorage.setItem("orgId", orgId);
+    }
+  }, [orgId]);
+
+  useEffect(() => {
+    if (!currentOrgId) return;
 
     api
-      .get(`/orgs/${orgId}/repos`)
+      .get(`/orgs/${currentOrgId}/repos`)
       .then((res) => setRepos(res.data.data))
       .catch(() => {});
-  }, [orgId]);
+  }, [currentOrgId]);
 
   const connectRepo = async () => {
     const trimmed = repoFullName.trim();
 
-    if (!orgId) {
+    if (!currentOrgId) {
       console.warn("Missing orgId while attempting to connect repo");
       return;
     }
@@ -34,7 +43,7 @@ export default function RepoPageClient({ orgId }: { orgId: string }) {
       return;
     }
 
-    const res = await api.post(`/orgs/${orgId}/repos/connect`, {
+    const res = await api.post(`/orgs/${currentOrgId}/repos/connect`, {
       repoFullName: trimmed,
     });
 
