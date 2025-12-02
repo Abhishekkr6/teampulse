@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
+import logger from "./utils/logger";
+import { requestLogger } from "./middlewares/requestLogger";
+import healthRoutes from "./routes/health.routes";
 
 const app = express();
 
@@ -20,11 +23,7 @@ app.use("/api/v1/webhooks", webhookRoutes);
 ------------------------------------------------------ */
 app.use(express.json());
 app.use(cors());
-
-
-app.get("/api/v1/health", (req, res) => {
-  res.status(200).json({ status: "ok" });
-});
+app.use(requestLogger);
 
 /* -----------------------------------------------------
    4) OTHER ROUTES
@@ -35,6 +34,7 @@ import orgRoutes from "./routes/org.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1", healthRoutes);
 app.use("/api/v1", meRoutes);
 app.use("/api/v1", orgRoutes);
 app.use("/api/v1", dashboardRoutes);
@@ -43,11 +43,11 @@ app.use("/api/v1", dashboardRoutes);
    5) MONGO CONNECT
 ------------------------------------------------------ */
 mongoose
-  .connect(process.env.MONGO_URL!)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => {
-    console.error("MongoDB connection error:", err);
-    process.exit(1);
-  });
+   .connect(process.env.MONGO_URL!)
+   .then(() => logger.info("MongoDB connected"))
+   .catch((err) => {
+      logger.error({ err }, "MongoDB connection error");
+      process.exit(1);
+   });
 
 export { app };

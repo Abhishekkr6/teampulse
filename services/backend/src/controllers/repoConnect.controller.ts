@@ -1,13 +1,14 @@
 import { Request, Response } from "express";
 import { RepoModel } from "../models/repo.model";
 import crypto from "crypto";
+import logger from "../utils/logger";
 
 export const connectRepo = async (req: any, res: Response) => {
   try {
-    console.log("------ DEBUG START ------");
-    console.log("REQ BODY:", req.body);
-    console.log("ORG ID:", req.params.orgId);
-    console.log("WEBHOOK_SECRET:", process.env.WEBHOOK_SECRET);
+    logger.debug("------ DEBUG START ------");
+    logger.debug({ body: req.body }, "REQ BODY");
+    logger.debug({ orgId: req.params.orgId }, "ORG ID");
+    logger.debug({ hasWebhookSecret: Boolean(process.env.WEBHOOK_SECRET) }, "WEBHOOK_SECRET configured");
 
     const { orgId } = req.params;
     const { repoFullName } = req.body; // "owner/repo"
@@ -31,7 +32,7 @@ export const connectRepo = async (req: any, res: Response) => {
 
     return res.json({ success: true, data: repo });
   } catch (err: any) {
-    console.error("CONNECT REPO ERROR:", err);
+    logger.error({ err }, "CONNECT REPO ERROR");
     return res.status(500).json({
       success: false,
       error: err?.message || "Repo connect failed",

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { exchangeCodeForToken, getGithubUser, getGithubEmail } from "../services/github.service";
 import { UserModel } from "../models/user.model";
 import { createToken } from "../services/jwt.service";
+import logger from "../utils/logger";
 
 export const githubLogin = async (req: Request, res: Response) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
@@ -39,7 +40,7 @@ export const githubCallback = async (req: Request, res: Response) => {
 
     return res.redirect(`${process.env.FRONTEND_URL}/?token=${token}`);
   } catch (err) {
-    console.log(err);
+    logger.error({ err }, "GitHub OAuth callback failed");
     return res.status(500).json({ success: false, error: { message: "OAuth failed" } });
   }
 };

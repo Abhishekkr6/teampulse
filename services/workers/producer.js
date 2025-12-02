@@ -1,5 +1,17 @@
 import { Queue } from "bullmq";
 import Redis from "ioredis";
+import pino from "pino";
+
+const logger = pino({
+  level: process.env.LOG_LEVEL || "info",
+  transport:
+    process.env.NODE_ENV === "development"
+      ? {
+          target: "pino-pretty",
+          options: { colorize: true, translateTime: "SYS:standard" },
+        }
+      : undefined,
+});
 
 const connection = new Redis(process.env.REDIS_URL, {
   tls: { rejectUnauthorized: false },
@@ -21,7 +33,7 @@ async function sendCommitJob() {
     backoff: { type: "exponential", delay: 2000 },
   });
 
-  console.log("Enqueued commit job id=", job.id);
+  logger.info({ jobId: job.id }, "Enqueued commit job");
 }
 
 async function sendPrJob() {
@@ -37,7 +49,7 @@ async function sendPrJob() {
     backoff: { type: "exponential", delay: 2000 },
   });
 
-  console.log("Enqueued PR job id=", job.id);
+  logger.info({ jobId: job.id }, "Enqueued PR job");
 }
 
 async function run() {
