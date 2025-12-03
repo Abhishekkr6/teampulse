@@ -4,6 +4,10 @@ export const requireOrgAccess = async (req: any, res: any, next: any) => {
   const user = req.user;
   const orgId = req.params.orgId;
 
+  if (!user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
   const org = await OrgModel.findById(orgId);
   if (!org) return res.status(404).json({ error: "Org not found" });
 
