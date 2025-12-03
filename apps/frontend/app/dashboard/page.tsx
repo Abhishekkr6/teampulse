@@ -76,7 +76,7 @@ export default function DashboardPage() {
       setTimeline(timelineRes.data.data);
 
       // PR risk buckets
-      const prs = prsRes.data.data || [];
+      const prs = prsRes.data?.data?.items || [];
       const buckets = [
         { label: "0–0.3", count: 0 },
         { label: "0.3–0.6", count: 0 },
