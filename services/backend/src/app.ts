@@ -34,7 +34,7 @@ app.use(
 const corsOptions: CorsOptions = {
    origin: [
       "http://localhost:3000", // local dev
-      "https://teampulse18.vercel.app/", // production placeholder
+      "https://teampulse18.vercel.app", // production placeholder
    ],
    methods: ["GET", "POST", "PUT", "DELETE"],
    credentials: true,
