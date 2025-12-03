@@ -13,24 +13,37 @@ export const getDevelopers = async (req: Request, res: Response) => {
       },
     ]);
 
-    const githubIds = commits.map((c) => c._id);
+    const githubIds = commits
+      .map((c) => (c._id ? String(c._id) : null))
+      .filter((id): id is string => Boolean(id));
 
     const users = await UserModel.find({ githubId: { $in: githubIds } })
       .select("githubId name avatarUrl")
       .lean();
 
-    const userMap = new Map(users.map((u: any) => [u.githubId, u]));
+    const userMap = new Map(users.map((u: any) => [String(u.githubId), u]));
 
-    const devList = commits.map((d) => {
-      const user = userMap.get(d._id);
+    const devList = commits
+      .filter((d) => Boolean(d._id))
+      .map((d) => {
+      const githubId = d._id ? String(d._id) : "";
+      const user = userMap.get(githubId);
+
+      const fallbackAvatar = (() => {
+        if (!githubId) return undefined;
+        const isNumeric = !Number.isNaN(Number(githubId));
+        return isNumeric
+          ? `https://avatars.githubusercontent.com/u/${githubId}`
+          : `https://github.com/${githubId}.png`;
+      })();
 
       return {
-        githubId: d._id,
+        githubId,
         commits: d.commits,
-        name: user?.name || d._id,
-        avatarUrl: user?.avatarUrl,
+        name: user?.name || githubId,
+        avatarUrl: user?.avatarUrl || fallbackAvatar,
       };
-    });
+      });
 
     return res.json({ success: true, data: devList });
   } catch (err) {

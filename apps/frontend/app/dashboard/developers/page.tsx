@@ -7,7 +7,7 @@ import Image from "next/image";
 
 interface Developer {
   githubId: string;
-  avatarUrl: string;
+  avatarUrl?: string | null;
   name: string;
   commits: number;
 }
@@ -42,13 +42,19 @@ export default function DevelopersPage() {
           >
             {/* Header */}
             <div className="flex items-center gap-4 mb-4">
-              <Image
-                src={d.avatarUrl}
-                alt={d.name}
-                width={56}
-                height={56}
-                className="rounded-full border"
-              />
+              {d.avatarUrl ? (
+                <Image
+                  src={d.avatarUrl}
+                  alt={d.name}
+                  width={56}
+                  height={56}
+                  className="rounded-full border"
+                />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border bg-gray-100 text-lg font-semibold text-gray-600">
+                  {d.name?.[0]?.toUpperCase() ?? "?"}
+                </div>
+              )}
               <div>
                 <div className="font-semibold text-gray-900">{d.name}</div>
                 <div className="text-xs text-gray-500">{d.githubId}</div>
