@@ -18,7 +18,10 @@ export default function PRsPage() {
   const { lastEvent } = useLiveStore();
 
   useEffect(() => {
-    api.get("/prs").then((res) => setPrs(res.data.data));
+    api
+      .get("/prs")
+      .then((res) => setPrs(res.data?.data?.items || []))
+      .catch(() => setPrs([]));
   }, []);
 
   useEffect(() => {
