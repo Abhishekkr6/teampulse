@@ -4,6 +4,13 @@ import { OrgModel } from "../models/org.model";
 export const createOrg = async (req: any, res: Response) => {
   try {
     const { name, slug } = req.body;
+    const userId = req.user?.id || req.user?._id;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, error: { message: "Unauthorized" } });
+    }
 
     if (!name || !slug) {
       return res
@@ -15,6 +22,7 @@ export const createOrg = async (req: any, res: Response) => {
       name,
       slug,
       settings: {},
+      createdBy: userId,
     });
 
     return res.json({ success: true, data: org });
