@@ -41,6 +41,11 @@ export const githubWebhookHandler = async (req: Request, res: Response) => {
     const signature = req.headers["x-hub-signature-256"] as string;
     const event = req.headers["x-github-event"] as string;
 
+    if (!signature) {
+      logger.warn({ headers: req.headers }, "❌ Missing signature header");
+      return res.status(401).json({ error: "Missing signature" });
+    }
+
     const payload = JSON.parse(rawBody.toString());
 
     const fullRepoName = payload.repository?.full_name;
@@ -55,15 +60,15 @@ export const githubWebhookHandler = async (req: Request, res: Response) => {
       return res.status(200).send("OK");
     }
 
-    const valid = verifyGithubSignature(
+    const ok = verifyGithubSignature(
       process.env.WEBHOOK_SECRET!,
       rawBody,
       signature
     );
 
-    if (!valid) {
+    if (!ok) {
       logger.warn({ repo: fullRepoName }, "❌ Invalid signature");
-      return res.status(401).json({ success: false, message: "Bad signature" });
+      return res.status(403).json({ error: "Invalid signature" });
     }
 
     if (event === "push") {

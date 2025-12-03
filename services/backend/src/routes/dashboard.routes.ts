@@ -4,10 +4,11 @@ import { getCommitTimeline } from "../controllers/activity.controller";
 import { getDevelopers } from "../controllers/developer.controller";
 import { listPRs } from "../controllers/prList.controller";
 import { getAlertSummary } from "../controllers/alertSummary.controller";
+import { requireOrgAccess } from "../middlewares/authOrg";
 
 const router = Router();
 
-router.get("/orgs/:orgId/dashboard", getDashboardStats);
+router.get("/orgs/:orgId/dashboard", requireOrgAccess, getDashboardStats);
 
 router.get("/activity/commits", getCommitTimeline);
 

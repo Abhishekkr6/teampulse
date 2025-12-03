@@ -1,8 +1,11 @@
 import express from "express";
-import cors from "cors";
+import cors, { CorsOptions } from "cors";
+import helmet from "helmet";
 import mongoose from "mongoose";
 import logger from "./utils/logger";
 import { requestLogger } from "./middlewares/requestLogger";
+import { apiLimiter } from "./middlewares/rateLimit";
+import { errorHandler } from "./middlewares/errorHandler";
 import healthRoutes from "./routes/health.routes";
 
 const app = express();
@@ -22,8 +25,24 @@ app.use("/api/v1/webhooks", webhookRoutes);
    3) NORMAL PARSERS AFTER WEBHOOK ONLY
 ------------------------------------------------------ */
 app.use(express.json());
-app.use(cors());
+app.use(
+   helmet({
+      contentSecurityPolicy: false,
+   })
+);
+
+const corsOptions: CorsOptions = {
+   origin: [
+      "http://localhost:3000", // local dev
+      "https://teampulse18.vercel.app/", // production placeholder
+   ],
+   methods: ["GET", "POST", "PUT", "DELETE"],
+   credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(requestLogger);
+app.use("/api", apiLimiter);
 
 /* -----------------------------------------------------
    4) OTHER ROUTES
@@ -38,6 +57,8 @@ app.use("/api/v1", healthRoutes);
 app.use("/api/v1", meRoutes);
 app.use("/api/v1", orgRoutes);
 app.use("/api/v1", dashboardRoutes);
+
+app.use(errorHandler);
 
 /* -----------------------------------------------------
    5) MONGO CONNECT
