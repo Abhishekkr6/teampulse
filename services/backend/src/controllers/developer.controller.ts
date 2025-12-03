@@ -13,18 +13,24 @@ export const getDevelopers = async (req: Request, res: Response) => {
       },
     ]);
 
-    const devList = await Promise.all(
-      commits.map(async (d) => {
-        const user = await UserModel.findOne({ login: d._id });
+    const githubIds = commits.map((c) => c._id);
 
-        return {
-          githubId: d._id,
-          commits: d.commits,
-          name: user?.name || d._id,
-          avatarUrl: user?.avatarUrl,
-        };
-      })
-    );
+    const users = await UserModel.find({ githubId: { $in: githubIds } })
+      .select("githubId name avatarUrl")
+      .lean();
+
+    const userMap = new Map(users.map((u: any) => [u.githubId, u]));
+
+    const devList = commits.map((d) => {
+      const user = userMap.get(d._id);
+
+      return {
+        githubId: d._id,
+        commits: d.commits,
+        name: user?.name || d._id,
+        avatarUrl: user?.avatarUrl,
+      };
+    });
 
     return res.json({ success: true, data: devList });
   } catch (err) {

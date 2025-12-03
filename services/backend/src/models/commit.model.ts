@@ -16,18 +16,25 @@ export interface ICommit extends Document {
   processed?: boolean;
 }
 
-const CommitSchema = new Schema<ICommit>({
-  sha: { type: String, required: true, unique: true },
-  repoId: { type: Schema.Types.ObjectId, ref: "Repo" },
-  authorGithubId: String,
-  authorName: String,
-  message: String,
-  timestamp: Date,
-  filesChangedCount: Number,
-  additions: Number,
-  deletions: Number,
-  modulePaths: [String],
-  processed: { type: Boolean, default: false },
-}, { timestamps: true });
+const CommitSchema = new Schema<ICommit>(
+  {
+    sha: { type: String, required: true, unique: true },
+    repoId: { type: Schema.Types.ObjectId, ref: "Repo" },
+    authorGithubId: String,
+    authorName: String,
+    message: String,
+    timestamp: Date,
+    filesChangedCount: Number,
+    additions: Number,
+    deletions: Number,
+    modulePaths: [String],
+    processed: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+CommitSchema.index({ repoId: 1, timestamp: -1 });
+CommitSchema.index({ authorGithubId: 1, timestamp: -1 });
+CommitSchema.index({ sha: 1 }, { unique: true });
 
 export const CommitModel = model<ICommit>("Commit", CommitSchema);

@@ -14,9 +14,13 @@ const connection = new Redis(process.env.REDIS_URL!, {
 // Workers
 const commitWorker = new Worker("commit-processing", commitProcessingHandler, {
   connection,
+  concurrency: 5,
 });
 
-const prWorker = new Worker("pr-analysis", prAnalysisHandler, { connection });
+const prWorker = new Worker("pr-analysis", prAnalysisHandler, {
+  connection,
+  concurrency: 3,
+});
  
 //-----------------------------------------------
 // 🔥 EVENT LOGGING STARTS HERE

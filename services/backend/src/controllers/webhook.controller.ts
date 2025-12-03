@@ -94,10 +94,22 @@ export const githubWebhookHandler = async (req: Request, res: Response) => {
         )
       );
 
-      await commitQueue.add("commit-batch", {
-        repoId: repo._id,
-        commitIds: commitDocs.map((d) => d._id),
-      });
+      await commitQueue.add(
+        "commit-batch",
+        {
+          repoId: repo._id,
+          commitIds: commitDocs.map((d) => d._id),
+        },
+        {
+          attempts: 3,
+          backoff: {
+            type: "exponential",
+            delay: 2000,
+          },
+          removeOnComplete: true,
+          removeOnFail: 20,
+        }
+      );
 
       logger.info({ repoId: repo._id, commits: commits.length }, "✅ Push event processed");
     }

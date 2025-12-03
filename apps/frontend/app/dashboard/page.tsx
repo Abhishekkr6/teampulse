@@ -32,6 +32,7 @@ export default function DashboardPage() {
   type RiskBucket = { label: string; count: number };
   const [riskBuckets, setRiskBuckets] = useState<RiskBucket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState(0);
 
   const { lastEvent } = useLiveStore();
   const router = useRouter();
@@ -115,14 +116,21 @@ export default function DashboardPage() {
   // Real-time updates
   useEffect(() => {
     if (!lastEvent) return;
-
-    if (lastEvent.type === "PR_UPDATED" || lastEvent.type === "NEW_ALERT") {
-      loadData(); // refresh instantly
+    if (lastEvent.type !== "PR_UPDATED" && lastEvent.type !== "NEW_ALERT") {
+      return;
     }
+
+    const now = Date.now();
+    if (now - lastRefresh < 5000) {
+      return;
+    }
+
+    loadData();
+    setLastRefresh(now);
   }, [lastEvent]);
 
   // -----------------------------
-  // Loading skeleton
+  // Loading skeletonx
   // -----------------------------
   if (loading || !stats) {
     if (missingOrg) {
