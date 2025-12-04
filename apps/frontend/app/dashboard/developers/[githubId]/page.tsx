@@ -118,7 +118,7 @@ export default function DeveloperDetailPage() {
             {profile?.avatarUrl ? (
               <Image
                 src={profile.avatarUrl}
-                alt={profile?.name || githubId}
+                alt={profile?.name ?? githubId ?? "Developer avatar"}
                 width={64}
                 height={64}
                 className="h-16 w-16 rounded-full border border-slate-200 object-cover"
