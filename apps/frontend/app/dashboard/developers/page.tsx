@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../../lib/api";
 import Image from "next/image";
 import Link from "next/link";
+import { Card } from "../../../components/Ui/Card";
 
 interface Developer {
   githubId: string;
@@ -22,57 +23,52 @@ export default function DevelopersPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Developers</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Activity overview of all contributors
-        </p>
-      </div>
+      <div className="space-y-6">
+        <header>
+          <h1 className="text-3xl font-semibold text-slate-900">Developers</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Activity overview of every active contributor.
+          </p>
+        </header>
 
-      {devs.length === 0 && (
-        <div className="text-gray-500 text-sm">
-          No developer activity found. Once commits are pushed, developers will
-          appear here.
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {devs.map((d) => (
-          <Link
-            key={d.githubId}
-            href={`/dashboard/developers/${d.githubId}`}
-            className="block"
-          >
-            <div className="p-5 bg-white border border-gray-200 rounded-xl shadow-sm transition hover:shadow-md cursor-pointer">
-              {/* Header */}
-              <div className="flex items-center gap-4 mb-4">
-                {d.avatarUrl ? (
-                  <Image
-                    src={d.avatarUrl}
-                    alt={d.name}
-                    width={56}
-                    height={56}
-                    className="rounded-full border"
-                  />
-                ) : (
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full border bg-gray-100 text-lg font-semibold text-gray-600">
-                    {d.name?.[0]?.toUpperCase() ?? "?"}
+        {devs.length === 0 ? (
+          <Card className="rounded-2xl border-0 bg-white p-6 text-sm text-slate-500 shadow-md">
+            No developer activity found yet. Once commits start flowing, contributors will appear here.
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {devs.map((d) => (
+              <Link key={d.githubId} href={`/dashboard/developers/${d.githubId}`} className="block">
+                <Card className="h-full rounded-2xl border-0 bg-white p-5 shadow-md transition hover:-translate-y-0.5 hover:shadow-lg">
+                  <div className="mb-4 flex items-center gap-4">
+                    {d.avatarUrl ? (
+                      <Image
+                        src={d.avatarUrl}
+                        alt={d.name}
+                        width={56}
+                        height={56}
+                        className="h-14 w-14 rounded-full border border-slate-200 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-lg font-semibold text-slate-600">
+                        {d.name?.[0]?.toUpperCase() ?? "?"}
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-base font-semibold text-slate-900">{d.name}</div>
+                      <div className="text-xs text-slate-500">{d.githubId}</div>
+                    </div>
                   </div>
-                )}
-                <div>
-                  <div className="font-semibold text-gray-900">{d.name}</div>
-                  <div className="text-xs text-gray-500">{d.githubId}</div>
-                </div>
-              </div>
 
-              {/* Stats */}
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">Commits</span>
-                <span className="font-semibold text-gray-900">{d.commits}</span>
-              </div>
-            </div>
-          </Link>
-        ))}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Commits (30d)</span>
+                    <span className="text-lg font-semibold text-slate-900">{d.commits}</span>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
