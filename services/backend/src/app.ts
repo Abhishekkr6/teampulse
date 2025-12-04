@@ -51,12 +51,16 @@ import authRoutes from "./routes/auth.routes";
 import meRoutes from "./routes/me.routes";
 import orgRoutes from "./routes/org.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
+import prRoutes from "./routes/pr.routes";
+import developerRoutes from "./routes/developer.routes";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1", healthRoutes);
 app.use("/api/v1", meRoutes);
 app.use("/api/v1", orgRoutes);
 app.use("/api/v1", dashboardRoutes);
+app.use("/api/v1", prRoutes);
+app.use("/api/v1", developerRoutes);
 
 app.use(errorHandler);
 
