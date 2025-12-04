@@ -144,7 +144,23 @@ export default function DashboardPage() {
 
   const commitTrend = useMemo(() => {
     if (!timeline.length) return null;
-    const recent = [...timeline].sort((a, b) => a.date.localeCompare(b.date));
+
+    const sortableEntries = timeline
+      .filter((entry): entry is TimelineEntry => Boolean(entry?.date))
+      .map((entry) => ({
+        ...entry,
+        // Normalise the date string so sorting works even if format shifts.
+        sortValue: new Date(entry.date).getTime(),
+      }))
+      .filter((entry) => Number.isFinite(entry.sortValue));
+
+    if (!sortableEntries.length) return null;
+
+    const recent = sortableEntries
+      .slice()
+      .sort((a, b) => a.sortValue - b.sortValue)
+      .map(({ sortValue, ...rest }) => rest);
+
     const lastFourteen = recent.slice(-14);
     if (lastFourteen.length < 14) return null;
 

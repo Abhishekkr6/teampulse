@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import DashboardLayout from "../../../../components/Layout/DashboardLayout";
@@ -88,8 +89,10 @@ export default function DeveloperDetailPage() {
   if (loading) {
     return (
       <DashboardLayout>
-        <Skeleton className="h-8 w-48 mb-4" />
-        <Skeleton className="h-32 w-full" />
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-32 w-full" />
+        </div>
       </DashboardLayout>
     );
   }
@@ -97,7 +100,9 @@ export default function DeveloperDetailPage() {
   if (!data) {
     return (
       <DashboardLayout>
-        <div className="text-gray-500 text-sm">{error ? error : "Developer not found."}</div>
+        <Card className="rounded-2xl border-0 bg-white p-6 text-sm text-slate-500 shadow-md">
+          {error ? error : "Developer not found."}
+        </Card>
       </DashboardLayout>
     );
   }
@@ -107,77 +112,85 @@ export default function DeveloperDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          {profile?.avatarUrl && (
-            <img
-              src={profile.avatarUrl}
-              className="w-12 h-12 rounded-full"
-              alt={profile?.name}
-            />
-          )}
-          <div>
-            <h1 className="text-xl font-semibold">{profile?.name || githubId}</h1>
-            <div className="text-xs text-gray-500">{githubId}</div>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            {profile?.avatarUrl ? (
+              <Image
+                src={profile.avatarUrl}
+                alt={profile?.name || githubId}
+                width={64}
+                height={64}
+                className="h-16 w-16 rounded-full border border-slate-200 object-cover"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-xl font-semibold text-slate-600">
+                {githubId?.[0]?.toUpperCase() ?? "?"}
+              </div>
+            )}
+            <div>
+              <h1 className="text-3xl font-semibold text-slate-900">{profile?.name || githubId}</h1>
+              <p className="text-sm text-slate-500">{githubId}</p>
+            </div>
           </div>
         </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <Card className="rounded-2xl border-0 bg-white shadow-md">
+            <CardHeader className="border-none">
+              <CardTitle>Total commits</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <p className="text-3xl font-semibold text-slate-900">{stats.totalCommits}</p>
+            </CardBody>
+          </Card>
+
+          <Card className="rounded-2xl border-0 bg-white shadow-md">
+            <CardHeader className="border-none">
+              <CardTitle>PRs opened</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <p className="text-3xl font-semibold text-slate-900">{stats.totalPRs}</p>
+            </CardBody>
+          </Card>
+
+          <Card className="rounded-2xl border-0 bg-white shadow-md">
+            <CardHeader className="border-none">
+              <CardTitle>High-risk PRs</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <p className="text-3xl font-semibold text-slate-900">{stats.highRiskPRs}</p>
+            </CardBody>
+          </Card>
+        </div>
+
+        <Card className="rounded-2xl border-0 bg-white shadow-md">
+          <CardHeader className="border-none">
+            <CardTitle>Recent commits</CardTitle>
+          </CardHeader>
+          <CardBody>
+            {commits.length === 0 ? (
+              <div className="text-sm text-slate-500">No commits yet.</div>
+            ) : (
+              <ul className="space-y-3 text-sm">
+                {commits.map((commit) => (
+                  <li key={commit._id} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                    <div className="font-mono text-xs text-slate-500">
+                      {commit.sha?.slice(0, 8)}
+                    </div>
+                    <div className="mt-1 font-medium text-slate-900">{commit.message}</div>
+                    <div className="text-[11px] text-slate-500">
+                      {commit.timestamp
+                        ? new Date(commit.timestamp).toLocaleString()
+                        : "Timestamp unavailable"}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total commits</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <p className="text-2xl font-bold">{stats.totalCommits}</p>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>PRs opened</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <p className="text-2xl font-bold">{stats.totalPRs}</p>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>High-risk PRs</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <p className="text-2xl font-bold">{stats.highRiskPRs}</p>
-          </CardBody>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent commits</CardTitle>
-        </CardHeader>
-        <CardBody>
-          {commits.length === 0 ? (
-            <div className="text-xs text-gray-500">No commits yet.</div>
-          ) : (
-            <ul className="space-y-2 text-sm">
-              {commits.map((commit) => (
-                <li key={commit._id} className="border-b border-gray-100 pb-1">
-                  <div className="font-mono text-xs text-gray-500">
-                    {commit.sha?.slice(0, 8)}
-                  </div>
-                  <div>{commit.message}</div>
-                  <div className="text-[11px] text-gray-400">
-                    {commit.timestamp
-                      ? new Date(commit.timestamp).toLocaleString()
-                      : "Timestamp unavailable"}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardBody>
-      </Card>
     </DashboardLayout>
   );
 }
