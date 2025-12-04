@@ -1,30 +1,142 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Activity,
+  Bell,
+  ChevronDown,
+  FolderGit2,
+  GitPullRequest,
+  LayoutDashboard,
+  Search,
+  Settings,
+  Users,
+} from "lucide-react";
 import { useUserStore } from "../../store/userStore";
 
 type User = {
   name: string;
   avatarUrl: string;
+  email?: string;
 };
+
+const navLinks = [
+  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Activity", href: "/dashboard/activity", icon: Activity },
+  { name: "Pull Requests", href: "/dashboard/prs", icon: GitPullRequest },
+  { name: "Alerts", href: "/dashboard/alerts", icon: Bell },
+  { name: "Developers", href: "/dashboard/developers", icon: Users },
+  { name: "Repositories", href: "/dashboard/repos", icon: FolderGit2 },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+];
 
 export default function Topbar() {
   const { user } = useUserStore() as { user: User | null };
+  const pathname = usePathname();
 
   return (
-    <div className="w-full border-b bg-white p-4 flex justify-end">
-      {user && (
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
-          <Image
-            src={user.avatarUrl}
-            alt={`${user.name}'s avatar`}
-            width={32}
-            height={32}
-            className="w-8 h-8 rounded-full"
-          />
-          <span>{user.name}</span>
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-sm font-semibold text-white shadow-sm">
+            TP
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-900">TeamPulse</p>
+            <p className="text-xs text-slate-500">Developer Activity</p>
+          </div>
         </div>
-      )}
-    </div>
+
+        <nav className="hidden lg:flex items-center gap-1 text-sm font-medium">
+          {navLinks.map(({ name, href, icon: Icon }) => {
+            const active = pathname === href || pathname.startsWith(`${href}/`);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-2 rounded-full px-3 py-2 transition-colors ${
+                  active
+                    ? "bg-indigo-100 text-indigo-700"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-indigo-600"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {name}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-3">
+          <div className="relative hidden md:block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              placeholder="Search..."
+              className="h-10 w-64 rounded-full border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+
+          <button
+            type="button"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:text-indigo-600"
+            aria-label="Notifications"
+          >
+            <Bell className="h-4 w-4" />
+            <span className="absolute right-2 top-2 inline-flex h-2 w-2 rounded-full bg-rose-500" />
+          </button>
+
+          <button
+            type="button"
+            className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-indigo-500 hover:text-indigo-600 md:flex"
+          >
+            Team
+            <ChevronDown className="h-4 w-4" />
+          </button>
+
+          {user ? (
+            <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm">
+              <Image
+                src={user.avatarUrl}
+                alt={`${user.name}'s avatar`}
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-full"
+              />
+              <div className="hidden text-left sm:block">
+                <p className="text-sm font-semibold text-slate-900">{user.name}</p>
+                {user.email && <p className="text-xs text-slate-500">{user.email}</p>}
+              </div>
+            </div>
+          ) : (
+            <div className="h-8 w-8 rounded-full bg-slate-200" />
+          )}
+        </div>
+      </div>
+
+      <div className="flex overflow-x-auto border-t border-slate-200 bg-white lg:hidden">
+        <nav className="flex w-full items-center gap-1 px-4 py-2 text-sm">
+          {navLinks.map(({ name, href, icon: Icon }) => {
+            const active = pathname === href || pathname.startsWith(`${href}/`);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-2 rounded-full px-3 py-2 transition-colors ${
+                  active
+                    ? "bg-indigo-100 text-indigo-700"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-indigo-600"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {name}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+    </header>
   );
 }
