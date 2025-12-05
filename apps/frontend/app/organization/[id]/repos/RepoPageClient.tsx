@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { api } from "../../../../lib/api";
 import { Card } from "../../../../components/Ui/Card";
 
@@ -12,6 +12,7 @@ type Repo = {
 export default function RepoPageClient({ orgId }: { orgId?: string }) {
   const [repoFullName, setRepoFullName] = useState("");
   const [repos, setRepos] = useState<Repo[]>([]);
+  const [loading, setLoading] = useState(false);
   const currentOrgId =
     orgId ??
     (typeof window !== "undefined" ? localStorage.getItem("orgId") ?? "" : "");
@@ -22,14 +23,39 @@ export default function RepoPageClient({ orgId }: { orgId?: string }) {
     }
   }, [orgId]);
 
-  useEffect(() => {
+  const fetchRepos = useCallback(async () => {
     if (!currentOrgId) return;
 
-    api
-      .get(`/orgs/${currentOrgId}/repos`)
-      .then((res) => setRepos(res.data.data))
-      .catch(() => {});
+    try {
+      setLoading(true);
+      const res = await api.get(`/orgs/${currentOrgId}/repos`);
+      setRepos(res.data.data);
+    } catch (err) {
+      console.error("Repo load failed", err);
+    } finally {
+      setLoading(false);
+    }
   }, [currentOrgId]);
+
+  useEffect(() => {
+    fetchRepos();
+  }, [fetchRepos]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (document.visibilityState === "visible") {
+        fetchRepos();
+      }
+    };
+
+    window.addEventListener("focus", fetchRepos);
+    document.addEventListener("visibilitychange", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", fetchRepos);
+      document.removeEventListener("visibilitychange", handleFocus);
+    };
+  }, [fetchRepos]);
 
   const connectRepo = async () => {
     const trimmed = repoFullName.trim();
@@ -44,11 +70,11 @@ export default function RepoPageClient({ orgId }: { orgId?: string }) {
       return;
     }
 
-    const res = await api.post(`/orgs/${currentOrgId}/repos/connect`, {
+    await api.post(`/orgs/${currentOrgId}/repos/connect`, {
       repoFullName: trimmed,
     });
 
-    setRepos((prev) => [...prev, res.data.data]);
+    await fetchRepos();
     setRepoFullName("");
   };
 
@@ -88,10 +114,10 @@ export default function RepoPageClient({ orgId }: { orgId?: string }) {
 
         <Card className="rounded-2xl border-0 bg-white p-6 shadow-md">
           <h2 className="text-lg font-semibold text-slate-900">Connected repositories</h2>
-          {repos.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-500">
-              No repositories connected yet.
-            </p>
+          {loading ? (
+            <p className="mt-3 text-sm text-slate-500">Refreshing repositories…</p>
+          ) : repos.length === 0 ? (
+            <p className="mt-3 text-sm text-slate-500">No repositories connected yet.</p>
           ) : (
             <ul className="mt-4 space-y-3 text-sm text-slate-700">
               {repos.map((r) => (
