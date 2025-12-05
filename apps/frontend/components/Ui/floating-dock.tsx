@@ -14,7 +14,7 @@ import {
   useSpring,
   useTransform,
 } from "motion/react";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 export type FloatingDockItem = {
   title: string;
@@ -47,16 +47,58 @@ const FloatingDockMobile = ({
   items: FloatingDockItem[];
   className?: string;
 }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeftHint, setShowLeftHint] = useState(false);
+  const [showRightHint, setShowRightHint] = useState(false);
+
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) {
+      return;
+    }
+
+    const updateHints = () => {
+      if (!element) {
+        return;
+      }
+      const hasOverflow = element.scrollWidth > element.clientWidth + 4;
+      if (!hasOverflow) {
+        setShowLeftHint(false);
+        setShowRightHint(false);
+        return;
+      }
+
+      const atStart = element.scrollLeft <= 4;
+      const atEnd =
+        element.scrollLeft >= element.scrollWidth - element.clientWidth - 4;
+
+      setShowLeftHint(!atStart);
+      setShowRightHint(!atEnd);
+    };
+
+    updateHints();
+    const handleResize = () => updateHints();
+
+    window.addEventListener("resize", handleResize);
+    element.addEventListener("scroll", updateHints, { passive: true });
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      element.removeEventListener("scroll", updateHints);
+    };
+  }, [items.length]);
+
   return (
     <nav
       className={cn(
-        "block w-full rounded-2xl border border-slate-200 bg-white px-2 py-2 shadow-sm md:hidden",
+        "relative block w-full rounded-2xl border border-slate-200 bg-white px-2 py-2 shadow-sm md:hidden",
         className,
       )}
       aria-label="Secondary navigation"
     >
       <div
         className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        ref={scrollRef}
       >
         {items.map((item) => (
           <Link
@@ -76,9 +118,45 @@ const FloatingDockMobile = ({
           </Link>
         ))}
       </div>
+      {showLeftHint && (
+        <div className="pointer-events-none absolute inset-y-2 left-2 flex w-12 items-center justify-start rounded-xl bg-linear-to-r from-white via-white/80 to-transparent pl-2 pr-6">
+          <ArrowIcon direction="left" />
+        </div>
+      )}
+      {showRightHint && (
+        <div className="pointer-events-none absolute inset-y-2 right-2 flex w-12 items-center justify-end rounded-xl bg-linear-to-l from-white via-white/80 to-transparent pl-6 pr-2">
+          <ArrowIcon direction="right" />
+        </div>
+      )}
     </nav>
   );
 };
+
+function ArrowIcon({ direction }: { direction: "left" | "right" }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4 text-slate-400"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {direction === "left" ? (
+        <>
+          <path d="M19 12H5" />
+          <path d="M12 19l-7-7 7-7" />
+        </>
+      ) : (
+        <>
+          <path d="M5 12h14" />
+          <path d="m12 5 7 7-7 7" />
+        </>
+      )}
+    </svg>
+  );
+}
 
 const FloatingDockDesktop = ({
   items,
