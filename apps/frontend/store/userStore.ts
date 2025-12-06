@@ -9,7 +9,7 @@ interface User {
   name?: string;
   email?: string;
   avatarUrl?: string;
-  orgIds?: string[];
+  orgIds?: unknown[];
   // Add other user properties as needed
   defaultOrgId?: string | null;
 }
@@ -50,6 +50,19 @@ const normaliseOrgId = (value: unknown): string | null => {
   return null;
 };
 
+const extractFirstOrgId = (orgIds: unknown): string | null => {
+  if (!Array.isArray(orgIds) || orgIds.length === 0) {
+    return null;
+  }
+
+  for (const entry of orgIds) {
+    const normalised = normaliseOrgId(entry);
+    if (normalised) return normalised;
+  }
+
+  return null;
+};
+
 interface UserState {
   user: User | null;
   loading: boolean;
@@ -68,10 +81,11 @@ export const useUserStore = create<UserState>((set) => ({
       const res = await api.get("/me");
       const user = res.data.data as User | null;
       const defaultOrgId = normaliseOrgId((user as unknown as { defaultOrgId?: unknown })?.defaultOrgId);
+      const fallbackOrgId = extractFirstOrgId((user as unknown as { orgIds?: unknown })?.orgIds);
       set({
         user,
         loading: false,
-        activeOrgId: defaultOrgId,
+        activeOrgId: defaultOrgId ?? fallbackOrgId,
       });
     } catch (err) {
       console.log("User load error");

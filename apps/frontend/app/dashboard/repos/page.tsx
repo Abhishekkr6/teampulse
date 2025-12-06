@@ -72,6 +72,7 @@ export default function ReposPage() {
 
   const activeOrgId = useUserStore((state) => state.activeOrgId);
   const userLoading = useUserStore((state) => state.loading);
+  const missingOrg = !userLoading && !activeOrgId;
 
   useEffect(() => {
     if (userLoading) {
@@ -154,17 +155,23 @@ export default function ReposPage() {
           <p className="text-base text-slate-500">Team repositories and project health metrics</p>
         </header>
 
-        <FilterBar
-          availableLanguages={availableLanguages}
-          healthFilter={healthFilter}
-          languageFilter={languageFilter}
-          onHealthChange={setHealthFilter}
-          onLanguageChange={setLanguageFilter}
-          onSearchChange={setSearch}
-          searchValue={search}
-        />
+        {missingOrg ? (
+          <Card className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600 shadow-none">
+            Select or create an organization to view its repositories.
+          </Card>
+        ) : (
+          <FilterBar
+            availableLanguages={availableLanguages}
+            healthFilter={healthFilter}
+            languageFilter={languageFilter}
+            onHealthChange={setHealthFilter}
+            onLanguageChange={setLanguageFilter}
+            onSearchChange={setSearch}
+            searchValue={search}
+          />
+        )}
 
-        {loading ? (
+        {missingOrg ? null : loading ? (
           <RepositorySkeleton />
         ) : filteredRepos.length === 0 ? (
           <Card className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600 shadow-none">
