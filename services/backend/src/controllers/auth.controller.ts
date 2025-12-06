@@ -5,13 +5,13 @@ import {
   getGithubEmail,
 } from "../services/github.service";
 import { UserModel } from "../models/user.model";
+import { OrgModel } from "../models/org.model"; // adjust path
 import { createToken } from "../services/jwt.service";
 import logger from "../utils/logger";
 
 export const githubLogin = async (req: Request, res: Response) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const redirect = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=user:email`;
-
   return res.redirect(redirect);
 };
 
@@ -33,10 +33,9 @@ export const githubCallback = async (req: Request, res: Response) => {
         avatarUrl: ghUser.avatar_url,
         email,
         role: "dev",
-        githubAccessToken: accessToken, // ⭐ SAVE TOKEN HERE
+        githubAccessToken: accessToken,
       });
     } else {
-      // ⭐ UPDATE EXISTING USER TOKEN
       user.githubAccessToken = accessToken;
       user.login = ghUser.login;
       user.name = ghUser.name;
@@ -45,10 +44,29 @@ export const githubCallback = async (req: Request, res: Response) => {
       await user.save();
     }
 
-    // ⭐ MINIMAL JWT ONLY WITH USER ID
-    const token = createToken({ id: user._id });
+    // ⭐ Auto-create default org if missing
+    if (!user.defaultOrgId) {
+      const org = await OrgModel.create({
+        name: `${ghUser.login}'s Team`,
+        slug: ghUser.login.toLowerCase(),
+        createdBy: user._id,
+      });
 
-    return res.redirect(`${process.env.FRONTEND_URL}/?token=${token}`);
+      user.defaultOrgId = org._id.toString();
+      user.orgIds.push(org._id.toString());
+      await user.save();
+    }
+
+    // ⭐ JWT MUST include defaultOrgId
+    const token = createToken({
+      id: user._id,
+      defaultOrgId: user.defaultOrgId,
+    });
+
+    // ⭐ Send orgId to frontend via redirect
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/?token=${token}&orgId=${user.defaultOrgId}`
+    );
   } catch (err) {
     logger.error({ err }, "GitHub OAuth callback failed");
     return res.status(500).json({

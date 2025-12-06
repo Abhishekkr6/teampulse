@@ -17,6 +17,7 @@ import { Card } from "../../../../components/Ui/Card";
 import { Skeleton } from "../../../../components/Ui/Skeleton";
 import { api } from "../../../../lib/api";
 import { getCachedRepoSummary, RepoSummary } from "../types";
+import { useUserStore } from "../../../../store/userStore";
 
 type RepoHealth = "healthy" | "attention" | "warning";
 
@@ -143,8 +144,17 @@ export default function RepoDetailPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
+	const activeOrgId = useUserStore((state) => state.activeOrgId);
+	const userLoading = useUserStore((state) => state.loading);
+
 	useEffect(() => {
 		let cancelled = false;
+
+		if (userLoading) {
+			return () => {
+				cancelled = true;
+			};
+		}
 
 		const cachedSummary = repoId ? getCachedRepoSummary(repoId) : null;
 		if (cachedSummary && !cancelled) {
@@ -164,8 +174,7 @@ export default function RepoDetailPage() {
 				return;
 			}
 
-			const orgId = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
-			if (!orgId) {
+			if (!activeOrgId) {
 				setError("Select an organization to view repository data");
 				setData(EMPTY_DETAIL);
 				setLoading(false);
@@ -176,7 +185,7 @@ export default function RepoDetailPage() {
 			setError(null);
 
 			try {
-				const response = await api.get<ApiResponse<RepoDetailResponse>>(`/orgs/${orgId}/repos/${repoId}`);
+				const response = await api.get<ApiResponse<RepoDetailResponse>>(`/orgs/${activeOrgId}/repos/${repoId}`);
 				if (!cancelled) {
 					const payload = response.data?.data ?? EMPTY_DETAIL;
 					setData({
@@ -213,7 +222,7 @@ export default function RepoDetailPage() {
 		return () => {
 			cancelled = true;
 		};
-	}, [repoId]);
+	}, [repoId, activeOrgId, userLoading]);
 
 	const topContributors = useMemo(() => (Array.isArray(data.topContributors) ? data.topContributors : []), [data.topContributors]);
 	const pullRequests = useMemo(() => (Array.isArray(data.pullRequests) ? data.pullRequests : []), [data.pullRequests]);

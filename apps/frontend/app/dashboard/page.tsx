@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
@@ -13,6 +13,7 @@ import {
 import DashboardLayout from "../../components/Layout/DashboardLayout";
 import { api } from "../../lib/api";
 import { useLiveStore } from "../../store/liveStore";
+import { useUserStore } from "../../store/userStore";
 import { Card } from "../../components/Ui/Card";
 import CommitLineChart from "../../components/Charts/CommitLineChart";
 import PRRiskBarChart from "../../components/Charts/PRRiskBarChart";
@@ -53,7 +54,10 @@ export default function DashboardPage() {
   const { lastEvent } = useLiveStore();
   const router = useRouter();
 
-  const loadData = async () => {
+  const activeOrgId = useUserStore((state) => state.activeOrgId);
+  const userLoading = useUserStore((state) => state.loading);
+
+  const loadData = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -67,9 +71,12 @@ export default function DashboardPage() {
         return;
       }
 
-      const orgId = localStorage.getItem("orgId");
-      if (!orgId) {
+      if (!activeOrgId) {
         setMissingOrg(true);
+        setStats(null);
+        setTimeline([]);
+        setRiskBuckets([]);
+        setPrStatusCounts(emptyStatus);
         setLoading(false);
         return;
       }
@@ -78,7 +85,7 @@ export default function DashboardPage() {
       setLoading(true);
 
       const [dashRes, timelineRes, prsRes] = await Promise.all([
-        api.get(`/orgs/${orgId}/dashboard`),
+        api.get(`/orgs/${activeOrgId}/dashboard`),
         api.get("/activity/commits"),
         api.get("/prs"),
       ]);
@@ -125,13 +132,21 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeOrgId, router]);
 
   useEffect(() => {
+    if (userLoading) {
+      return;
+    }
+
     loadData();
-  }, []);
+  }, [userLoading, loadData]);
 
   useEffect(() => {
+    if (userLoading || !activeOrgId) {
+      return;
+    }
+
     if (!lastEvent) return;
     if (lastEvent.type !== "PR_UPDATED" && lastEvent.type !== "NEW_ALERT") return;
 
@@ -140,7 +155,7 @@ export default function DashboardPage() {
 
     loadData();
     setLastRefresh(now);
-  }, [lastEvent]);
+  }, [lastEvent, lastRefresh, loadData, userLoading, activeOrgId]);
 
   const commitTrend = useMemo(() => {
     if (!timeline.length) return null;
