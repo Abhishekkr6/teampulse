@@ -3,21 +3,35 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "../components/Ui/Card";
+import { useUserStore } from "../store/userStore";
 
 export default function HomePage() {
   const router = useRouter();
+  const setActiveOrgId = useUserStore((state) => state.setActiveOrgId);
 
   useEffect(() => {
     const url = new URL(window.location.href);
     const token = url.searchParams.get("token");
+    const orgId = url.searchParams.get("orgId");
 
     if (token) {
       localStorage.setItem("token", token);
-      url.searchParams.delete("token");
-      window.history.replaceState({}, "", url.toString());
-      router.push("/dashboard");
     }
-  }, []);
+
+    if (orgId) {
+      setActiveOrgId(orgId);
+    }
+
+    if (token || orgId) {
+      url.searchParams.delete("token");
+      url.searchParams.delete("orgId");
+      window.history.replaceState({}, "", url.toString());
+
+      if (token) {
+        router.push("/dashboard");
+      }
+    }
+  }, [router, setActiveOrgId]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-12">

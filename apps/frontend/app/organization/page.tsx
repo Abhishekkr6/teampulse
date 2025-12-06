@@ -4,16 +4,28 @@ import { useState } from "react";
 import { api } from "../../lib/api";
 import { useRouter } from "next/navigation";
 import { Card } from "../../components/Ui/Card";
+import { useUserStore } from "../../store/userStore";
 
 export default function CreateOrgPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const router = useRouter();
+  const { setActiveOrgId, fetchUser } = useUserStore((state) => ({
+    setActiveOrgId: state.setActiveOrgId,
+    fetchUser: state.fetchUser,
+  }));
 
   const createOrg = async () => {
     const res = await api.post("/orgs", { name, slug });
-    const org = res.data.data;
-    localStorage.setItem("orgId", org._id);
+    const { org, defaultOrgId } = res.data.data;
+
+    const activeOrgId = defaultOrgId ?? org?._id;
+    if (!org?._id || !activeOrgId) {
+      throw new Error("Organization payload missing identifiers");
+    }
+
+    setActiveOrgId(activeOrgId.toString());
+    await fetchUser();
     router.push(`/organization/${org._id}/repos`);
   };
 

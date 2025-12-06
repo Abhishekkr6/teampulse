@@ -7,12 +7,15 @@ export interface IUser extends Document {
   email?: string;
   avatarUrl?: string;
   role: "admin" | "lead" | "dev" | "viewer";
+
   orgIds: string[];
 
-  // ⭐ CRITICAL new fields
+  defaultOrgId?: string;
+
   githubAccessToken: string;
   githubRefreshToken?: string;
   githubScopes?: string[];
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,7 +32,12 @@ const UserSchema = new Schema<IUser>(
 
     orgIds: [{ type: Schema.Types.ObjectId, ref: "Org" }],
 
-    // ⭐ CRITICAL fields
+    defaultOrgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Org",
+      default: null,
+    },
+
     githubAccessToken: { type: String, required: true },
     githubRefreshToken: { type: String },
     githubScopes: [String],

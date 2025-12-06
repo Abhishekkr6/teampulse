@@ -16,6 +16,7 @@ import DashboardLayout from "../../../components/Layout/DashboardLayout";
 import { Card } from "../../../components/Ui/Card";
 import { api } from "../../../lib/api";
 import { cacheRepoSummary, normalizeRepo, RepoApiRecord, RepoSummary } from "./types";
+import { useUserStore } from "../../../store/userStore";
 
 const HEALTH_LABELS: Record<RepoSummary["health"], string> = {
   healthy: "Healthy",
@@ -69,32 +70,53 @@ export default function ReposPage() {
   const [languageFilter, setLanguageFilter] = useState<string>("all");
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
 
+  const activeOrgId = useUserStore((state) => state.activeOrgId);
+  const userLoading = useUserStore((state) => state.loading);
+
   useEffect(() => {
-    const orgId = localStorage.getItem("orgId");
-    if (!orgId) {
+    if (userLoading) {
+      return;
+    }
+
+    if (!activeOrgId) {
+      setRepos([]);
       setLoading(false);
       return;
     }
 
+    let cancelled = false;
+
     const loadRepos = async () => {
+      setLoading(true);
+
       try {
-        const response = await api.get(`/orgs/${orgId}/repos`);
+        const response = await api.get(`/orgs/${activeOrgId}/repos`);
         const payload: RepoApiRecord[] = Array.isArray(response.data?.data) ? response.data.data : [];
         const normalized = payload
           .map((item) => normalizeRepo(item))
           .filter((value): value is RepoSummary => value !== null);
 
-        setRepos(normalized);
+        if (!cancelled) {
+          setRepos(normalized);
+        }
       } catch (error) {
         console.warn("Failed to load repos", error);
-        setRepos([]);
+        if (!cancelled) {
+          setRepos([]);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     loadRepos();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrgId, userLoading]);
 
   const availableLanguages = useMemo(() => {
     const set = new Set<string>();
