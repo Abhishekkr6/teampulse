@@ -10,6 +10,7 @@ export interface IPR extends Document {
   createdAt?: Date;
   mergedAt?: Date | null;
   closedAt?: Date | null;
+  updatedAt?: Date | null;
   filesChanged?: number;
   additions?: number;
   deletions?: number;
@@ -31,6 +32,7 @@ const PRSchema = new Schema<IPR>(
     createdAt: Date,
     mergedAt: Date,
     closedAt: Date,
+    updatedAt: Date,
     filesChanged: Number,
     additions: Number,
     deletions: Number,
