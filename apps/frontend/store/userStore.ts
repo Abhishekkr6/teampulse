@@ -50,17 +50,27 @@ const normaliseOrgId = (value: unknown): string | null => {
   return null;
 };
 
-const extractFirstOrgId = (orgIds: unknown): string | null => {
+const extractPreferredOrgId = (orgIds: unknown): string | null => {
   if (!Array.isArray(orgIds) || orgIds.length === 0) {
     return null;
   }
 
-  for (const entry of orgIds) {
-    const normalised = normaliseOrgId(entry);
-    if (normalised) return normalised;
+  for (let index = orgIds.length - 1; index >= 0; index -= 1) {
+    const normalised = normaliseOrgId(orgIds[index]);
+    if (normalised) {
+      return normalised;
+    }
   }
 
   return null;
+};
+
+const orgIdExistsInList = (orgIds: unknown, candidate: string | null): boolean => {
+  if (!candidate || !Array.isArray(orgIds)) {
+    return false;
+  }
+
+  return orgIds.some((entry) => normaliseOrgId(entry) === candidate);
 };
 
 interface UserState {
@@ -81,11 +91,21 @@ export const useUserStore = create<UserState>((set) => ({
       const res = await api.get("/me");
       const user = res.data.data as User | null;
       const defaultOrgId = normaliseOrgId((user as unknown as { defaultOrgId?: unknown })?.defaultOrgId);
-      const fallbackOrgId = extractFirstOrgId((user as unknown as { orgIds?: unknown })?.orgIds);
+      const orgIdsRaw = (user as unknown as { orgIds?: unknown })?.orgIds;
+      const fallbackOrgId = extractPreferredOrgId(orgIdsRaw);
+      const storedOrgId = typeof window !== "undefined"
+        ? normaliseOrgId(window.sessionStorage.getItem("teampulse:lastOrgId"))
+        : null;
+      const activeOrgIdCandidate = orgIdExistsInList(orgIdsRaw, defaultOrgId)
+        ? defaultOrgId
+        : fallbackOrgId;
+      const resolvedOrgId = orgIdExistsInList(orgIdsRaw, storedOrgId)
+        ? storedOrgId
+        : activeOrgIdCandidate;
       set({
         user,
         loading: false,
-        activeOrgId: defaultOrgId ?? fallbackOrgId,
+        activeOrgId: resolvedOrgId,
       });
     } catch (err) {
       console.log("User load error");
@@ -97,5 +117,21 @@ export const useUserStore = create<UserState>((set) => ({
     }
   },
 
-  setActiveOrgId: (orgId) => set({ activeOrgId: normaliseOrgId(orgId) }),
+  setActiveOrgId: (orgId) => {
+    const normalised = normaliseOrgId(orgId);
+
+    if (typeof window !== "undefined") {
+      try {
+        if (normalised) {
+          window.sessionStorage.setItem("teampulse:lastOrgId", normalised);
+        } else {
+          window.sessionStorage.removeItem("teampulse:lastOrgId");
+        }
+      } catch (error) {
+        console.warn("Failed to persist active org selection", error);
+      }
+    }
+
+    set({ activeOrgId: normalised });
+  },
 }));

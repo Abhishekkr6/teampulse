@@ -15,7 +15,10 @@ export default function RepoPageClient({ orgId }: { orgId?: string }) {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const setActiveOrgId = useUserStore((state) => state.setActiveOrgId);
+  const { setActiveOrgId, fetchUser } = useUserStore((state) => ({
+    setActiveOrgId: state.setActiveOrgId,
+    fetchUser: state.fetchUser,
+  }));
 
   // ⭐ NEVER use localStorage for orgId
   const currentOrgId = orgId;
@@ -61,6 +64,7 @@ export default function RepoPageClient({ orgId }: { orgId?: string }) {
       repoFullName: trimmed,
     });
 
+    await fetchUser();
     await fetchRepos();
     setRepoFullName("");
   };

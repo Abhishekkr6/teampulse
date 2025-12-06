@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { RepoModel } from "../models/repo.model";
 import crypto from "crypto";
 import logger from "../utils/logger";
+import { UserModel } from "../models/user.model";
+import { Types } from "mongoose";
 
 export const connectRepo = async (req: any, res: Response) => {
   try {
@@ -18,17 +20,37 @@ export const connectRepo = async (req: any, res: Response) => {
         .status(400)
         .json({ success: false, error: "repoFullName required" });
 
+    if (!orgId || !Types.ObjectId.isValid(orgId)) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Valid organization id required" });
+    }
+
     const secret = process.env.WEBHOOK_SECRET!;
     const hashed = crypto.createHash("sha256").update(secret).digest("hex");
+
+    const orgObjectId = new Types.ObjectId(orgId);
 
     const repo = await RepoModel.create({
       provider: "github",
       providerRepoId: repoFullName,
-      orgId,
+      orgId: orgObjectId,
       name: repoFullName,
       webhookSecretHash: hashed,
       connectedAt: new Date(),
     });
+
+    const userId = req.user?.id || req.user?._id;
+    if (userId && Types.ObjectId.isValid(String(userId))) {
+      await UserModel.findByIdAndUpdate(
+        userId,
+        {
+          defaultOrgId: orgObjectId,
+          $addToSet: { orgIds: orgObjectId },
+        },
+        { new: true }
+      );
+    }
 
     return res.json({ success: true, data: repo });
   } catch (err: any) {
