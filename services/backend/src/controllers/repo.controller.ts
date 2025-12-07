@@ -15,26 +15,35 @@ export const getRepos = async (req: Request, res: Response) => {
 
     const orgObjectId = new Types.ObjectId(orgIdParam);
 
-    const repos = await RepoModel.find({ orgId: orgObjectId }).lean();
+    const rawRepos = await RepoModel.find({
+      $or: [{ orgId: orgObjectId }, { orgId: orgIdParam }],
+    }).lean();
 
-    if (!repos.length) {
-      const legacyRepos = await RepoModel.find({ orgId: orgIdParam }).lean();
-      if (!legacyRepos.length) {
-        return res.json({ success: true, data: [] });
-      }
-
-      await Promise.all(
-        legacyRepos.map((repo) =>
-          RepoModel.updateOne({ _id: repo._id }, { orgId: orgObjectId })
-        )
-      );
-
-      repos.push(...legacyRepos.map((repo) => ({ ...repo, orgId: orgObjectId })));
-    }
-
-    if (!repos.length) {
+    if (!rawRepos.length) {
       return res.json({ success: true, data: [] });
     }
+
+    const reposMap = new Map<string, any>();
+    const legacyRepoIds: Types.ObjectId[] = [];
+
+    for (const repo of rawRepos) {
+      const repoId = String(repo._id);
+      reposMap.set(repoId, repo);
+
+      if (typeof (repo as any)?.orgId === "string") {
+        legacyRepoIds.push(new Types.ObjectId(String(repo._id)));
+        (repo as any).orgId = orgObjectId;
+      }
+    }
+
+    if (legacyRepoIds.length > 0) {
+      await RepoModel.updateMany(
+        { _id: { $in: legacyRepoIds } },
+        { orgId: orgObjectId }
+      );
+    }
+
+    const repos = Array.from(reposMap.values());
 
     const repoIds = repos.map((repo: any) => repo._id);
 
