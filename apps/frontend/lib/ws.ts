@@ -3,11 +3,13 @@
 let socket: WebSocket | null = null;
 const listeners: ((event: unknown) => void)[] = [];
 
+const DEFAULT_REMOTE_WS = "wss://teampulse-production.up.railway.app";
+
 const resolveWsUrl = () => {
   const envUrl = process.env.NEXT_PUBLIC_WS_URL;
   if (envUrl) return envUrl;
 
-  const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? process.env.BACKEND_URL;
   if (apiUrl) {
     try {
       const parsed = new URL(apiUrl);
@@ -19,7 +21,14 @@ const resolveWsUrl = () => {
     }
   }
 
-  return "ws://localhost:4001";
+  if (typeof window !== "undefined") {
+    const origin = window.location.origin;
+    if (/localhost|127\.0\.0\.1/i.test(origin)) {
+      return "ws://localhost:4001";
+    }
+  }
+
+  return DEFAULT_REMOTE_WS;
 };
 
 export const connectWS = () => {
