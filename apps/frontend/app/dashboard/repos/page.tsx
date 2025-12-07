@@ -1,15 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { MouseEvent } from "react";
 import {
   AlertTriangle,
-  ChevronDown,
   GitCommit,
   GitPullRequest,
   Languages,
-  Search,
   Users,
 } from "lucide-react";
 import DashboardLayout from "../../../components/Layout/DashboardLayout";
@@ -28,13 +26,6 @@ const HEALTH_STYLES: Record<RepoSummary["health"], string> = {
   healthy: "bg-emerald-100 text-emerald-700",
   attention: "bg-amber-100 text-amber-700",
   warning: "bg-rose-100 text-rose-700",
-};
-
-const HEALTH_FILTER_LABELS: Record<HealthFilter | "all", string> = {
-  all: "Health",
-  healthy: HEALTH_LABELS.healthy,
-  attention: HEALTH_LABELS.attention,
-  warning: HEALTH_LABELS.warning,
 };
 
 const LANGUAGE_COLORS: Record<string, string> = {
@@ -61,14 +52,9 @@ const LANGUAGE_DISPLAY_NAMES: Record<string, string> = {
   react: "React",
 };
 
-type HealthFilter = "all" | RepoSummary["health"];
-
 export default function ReposPage() {
   const [repos, setRepos] = useState<RepoSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [languageFilter, setLanguageFilter] = useState<string>("all");
-  const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
 
   const activeOrgId = useUserStore((state) => state.activeOrgId);
   const userLoading = useUserStore((state) => state.loading);
@@ -149,34 +135,6 @@ export default function ReposPage() {
     };
   }, [activeOrgId, userLoading]);
 
-  const availableLanguages = useMemo(() => {
-    const set = new Set<string>();
-    repos.forEach((repo) => {
-      if (repo.language) {
-        set.add(repo.language.toLowerCase());
-      }
-    });
-    return Array.from(set).sort();
-  }, [repos]);
-
-  const filteredRepos = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-
-    return repos.filter((repo) => {
-      const matchesSearch =
-        keyword.length === 0 ||
-        repo.name.toLowerCase().includes(keyword) ||
-        (repo.description ?? "").toLowerCase().includes(keyword);
-
-      const language = repo.language ? repo.language.toLowerCase() : "";
-      const matchesLanguage = languageFilter === "all" || language === languageFilter;
-
-      const matchesHealth = healthFilter === "all" || repo.health === healthFilter;
-
-      return matchesSearch && matchesLanguage && matchesHealth;
-    });
-  }, [repos, search, languageFilter, healthFilter]);
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -190,126 +148,24 @@ export default function ReposPage() {
             Select or create an organization to view its repositories.
           </Card>
         ) : (
-          <FilterBar
-            availableLanguages={availableLanguages}
-            healthFilter={healthFilter}
-            languageFilter={languageFilter}
-            onHealthChange={setHealthFilter}
-            onLanguageChange={setLanguageFilter}
-            onSearchChange={setSearch}
-            searchValue={search}
-          />
+          null
         )}
 
         {missingOrg ? null : loading ? (
           <RepositorySkeleton />
-        ) : filteredRepos.length === 0 ? (
+        ) : repos.length === 0 ? (
           <Card className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600 shadow-none">
-            No repositories match your filters right now.
+            No repositories available yet.
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-            {filteredRepos.map((repo) => (
+            {repos.map((repo) => (
               <RepositoryCard key={repo.id} repo={repo} />
             ))}
           </div>
         )}
       </div>
     </DashboardLayout>
-  );
-}
-
-function FilterBar({
-  availableLanguages,
-  searchValue,
-  onSearchChange,
-  languageFilter,
-  onLanguageChange,
-  healthFilter,
-  onHealthChange,
-}: {
-  availableLanguages: string[];
-  searchValue: string;
-  onSearchChange: (value: string) => void;
-  languageFilter: string;
-  onLanguageChange: (value: string) => void;
-  healthFilter: HealthFilter;
-  onHealthChange: (value: HealthFilter) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <div className="relative w-full max-w-xl">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          aria-label="Search repositories"
-          className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100"
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Search..."
-          type="search"
-          value={searchValue}
-        />
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Select
-          id="repo-language-filter"
-          label="Language"
-          onChange={onLanguageChange}
-          options={["all", ...availableLanguages]}
-          value={languageFilter}
-        />
-
-        <Select
-          id="repo-health-filter"
-          label="Health"
-          onChange={(value) => onHealthChange(value as HealthFilter)}
-          options={["all", "healthy", "attention", "warning"]}
-          formatOption={(option) => HEALTH_FILTER_LABELS[option as HealthFilter | "all"] ?? option}
-          value={healthFilter}
-        />
-      </div>
-    </div>
-  );
-}
-
-function Select({
-  id,
-  label,
-  value,
-  options,
-  formatOption,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  options: readonly string[] | string[];
-  formatOption?: (value: string) => string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="relative min-w-40">
-      <label className="sr-only" htmlFor={id}>
-        {label}
-      </label>
-      <select
-        className="h-11 w-full appearance-none rounded-full border border-slate-200 bg-white px-4 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-        id={id}
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        {(options as string[]).map((option) => (
-          <option key={option} value={option}>
-            {formatOption
-              ? formatOption(option)
-              : option === "all"
-              ? label
-              : option.charAt(0).toUpperCase() + option.slice(1)}
-          </option>
-        ))}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-    </div>
   );
 }
 
