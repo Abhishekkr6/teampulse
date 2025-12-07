@@ -15,9 +15,22 @@ export const getRepos = async (req: Request, res: Response) => {
 
     const orgObjectId = new Types.ObjectId(orgIdParam);
 
-    const repos = await RepoModel.find({
-      $or: [{ orgId: orgObjectId }, { orgId: orgIdParam }],
-    }).lean();
+    const repos = await RepoModel.find({ orgId: orgObjectId }).lean();
+
+    if (!repos.length) {
+      const legacyRepos = await RepoModel.find({ orgId: orgIdParam }).lean();
+      if (!legacyRepos.length) {
+        return res.json({ success: true, data: [] });
+      }
+
+      await Promise.all(
+        legacyRepos.map((repo) =>
+          RepoModel.updateOne({ _id: repo._id }, { orgId: orgObjectId })
+        )
+      );
+
+      repos.push(...legacyRepos.map((repo) => ({ ...repo, orgId: orgObjectId })));
+    }
 
     if (!repos.length) {
       return res.json({ success: true, data: [] });

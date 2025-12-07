@@ -92,13 +92,28 @@ export default function ReposPage() {
 
       try {
         const response = await api.get(`/orgs/${activeOrgId}/repos`);
-        const payload: RepoApiRecord[] = Array.isArray(response.data?.data) ? response.data.data : [];
+
+        if (response.status === 304) {
+          return;
+        }
+
+        const rawData = response.data?.data;
+        const payload: RepoApiRecord[] = Array.isArray(rawData)
+          ? rawData
+          : rawData && typeof rawData === "object"
+          ? Object.values(rawData as Record<string, RepoApiRecord>)
+          : [];
+
         const normalized = payload
           .map((item) => normalizeRepo(item))
           .filter((value): value is RepoSummary => value !== null);
 
         if (!cancelled) {
           setRepos(normalized);
+          localStorage.setItem(
+            "teampulse:lastRepos",
+            JSON.stringify({ orgId: activeOrgId, repos: normalized })
+          );
         }
       } catch (error) {
         console.warn("Failed to load repos", error);
@@ -111,6 +126,21 @@ export default function ReposPage() {
         }
       }
     };
+
+    try {
+      const cached = localStorage.getItem("teampulse:lastRepos");
+      if (cached) {
+        const parsed = JSON.parse(cached) as { orgId?: string; repos?: RepoApiRecord[] };
+        if (parsed?.orgId === activeOrgId && Array.isArray(parsed?.repos)) {
+          const normalized = parsed.repos
+            .map((item) => normalizeRepo(item))
+            .filter((value): value is RepoSummary => value !== null);
+          setRepos(normalized);
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to read cached repos", error);
+    }
 
     loadRepos();
 
