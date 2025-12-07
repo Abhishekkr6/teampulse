@@ -8,9 +8,14 @@ import { UserModel } from "../models/user.model";
 
 export const getRepos = async (req: Request, res: Response) => {
   try {
-    const orgId = req.params.orgId;
+    const orgIdParam = req.params.orgId;
+    if (!orgIdParam || !Types.ObjectId.isValid(orgIdParam)) {
+      return res.status(400).json({ success: false, error: { message: "Invalid organization identifier" } });
+    }
 
-    const repos = await RepoModel.find({ orgId }).lean();
+    const orgObjectId = new Types.ObjectId(orgIdParam);
+
+    const repos = await RepoModel.find({ orgId: orgObjectId }).lean();
 
     if (!repos.length) {
       return res.json({ success: true, data: [] });
