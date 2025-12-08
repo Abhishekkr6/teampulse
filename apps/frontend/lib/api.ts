@@ -31,7 +31,14 @@ const resolveBaseURL = (): string => {
   if (typeof window !== "undefined") {
     const origin = window.location.origin.replace(/\/$/, "");
     if (/localhost|127\.0\.0\.1/i.test(origin)) {
-      return `${origin}/api/v1`;
+      const localBaseCandidate =
+        (process.env.NEXT_PUBLIC_LOCAL_BACKEND_URL ?? DEFAULT_LOCAL_BASE).trim();
+
+      if (localBaseCandidate) {
+        return localBaseCandidate.replace(/\/$/, "");
+      }
+
+      return DEFAULT_LOCAL_BASE;
     }
 
     console.warn(
