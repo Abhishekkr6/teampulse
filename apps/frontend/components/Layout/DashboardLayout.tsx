@@ -3,8 +3,6 @@
 import Topbar from "./Topbar";
 import { useEffect } from "react";
 import { useUserStore } from "../../store/userStore";
-import { useLiveStore } from "../../store/liveStore";
-
 let hasBootstrapped = false;
 
 export default function DashboardLayout({
@@ -18,7 +16,6 @@ export default function DashboardLayout({
 
     const { fetchUser } = useUserStore.getState();
     fetchUser();
-    useLiveStore.getState().init();
   }, []);
 
   return (
