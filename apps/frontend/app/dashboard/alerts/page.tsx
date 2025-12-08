@@ -157,7 +157,8 @@ export default function AlertsPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [loading, setLoading] = useState(true);
 
-  const { lastEvent, init } = useLiveStore();
+  const lastEvent = useLiveStore((state) => state.lastEvent);
+  const init = useLiveStore((state) => state.init);
 
   useEffect(() => {
     init();

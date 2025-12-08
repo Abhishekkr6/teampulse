@@ -51,7 +51,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(0);
 
-  const { lastEvent } = useLiveStore();
+  const lastEvent = useLiveStore((state) => state.lastEvent);
   const router = useRouter();
 
   const activeOrgId = useUserStore((state) => state.activeOrgId);

@@ -166,7 +166,7 @@ export default function PRsPage() {
   const [riskFilter, setRiskFilter] = useState<RiskFilter>("all");
   const [repoFilter, setRepoFilter] = useState<string>("all");
   const [selectedPrId, setSelectedPrId] = useState<string | null>(null);
-  const { lastEvent } = useLiveStore();
+  const lastEvent = useLiveStore((state) => state.lastEvent);
 
   useEffect(() => {
     let isMounted = true;
