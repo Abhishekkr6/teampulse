@@ -14,8 +14,7 @@ export default function DashboardLayout({
     if (hasBootstrapped) return;
     hasBootstrapped = true;
 
-    const { fetchUser } = useUserStore.getState();
-    fetchUser();
+    // Intentionally not auto-fetching user here to prevent update loops
   }, []);
 
   return (
