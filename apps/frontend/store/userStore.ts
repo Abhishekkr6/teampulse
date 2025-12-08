@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { api } from "../lib/api";
+import { useLiveStore } from "./liveStore";
 
 interface User {
   id?: string;
@@ -79,6 +80,7 @@ interface UserState {
   activeOrgId: string | null;
   fetchUser: () => Promise<void>;
   setActiveOrgId: (orgId: string | null) => void;
+  logout: () => Promise<void>;
 }
 
 export const useUserStore = create<UserState>((set) => ({
@@ -133,5 +135,42 @@ export const useUserStore = create<UserState>((set) => ({
     }
 
     set({ activeOrgId: normalised });
+  },
+
+  logout: async () => {
+    try {
+      await api.delete("/auth/logout");
+    } catch (error) {
+      console.warn("Failed to revoke session on server", error);
+    }
+
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("teampulse:lastRepos");
+
+        const session = window.sessionStorage;
+        session.removeItem("teampulse:lastOrgId");
+
+        const sessionKeys: string[] = [];
+        for (let index = 0; index < session.length; index += 1) {
+          const key = session.key(index);
+          if (key && key.startsWith("repo-summary:")) {
+            sessionKeys.push(key);
+          }
+        }
+        sessionKeys.forEach((key) => session.removeItem(key));
+      }
+    } catch (error) {
+      console.warn("Failed to clear stored auth state", error);
+    }
+
+    try {
+      useLiveStore.getState().reset();
+    } catch (error) {
+      console.warn("Failed to reset live store", error);
+    }
+
+    set({ user: null, loading: false, activeOrgId: null });
   },
 }));

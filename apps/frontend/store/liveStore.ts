@@ -15,6 +15,7 @@ interface LiveState {
   livePRs: LiveEvent[];
   alerts: LiveEvent[];
   init: () => void;
+  reset: () => void;
 }
 
 export const useLiveStore = create<LiveState>((set, get) => ({
@@ -44,5 +45,9 @@ export const useLiveStore = create<LiveState>((set, get) => ({
         });
       }
     });
+  },
+
+  reset: () => {
+    set({ wsConnected: false, lastEvent: null, livePRs: [], alerts: [] });
   },
 }));
