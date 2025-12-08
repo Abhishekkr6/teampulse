@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { Types } from "mongoose";
 import {
   exchangeCodeForToken,
   getGithubUser,
@@ -8,6 +9,10 @@ import { UserModel } from "../models/user.model";
 import { OrgModel } from "../models/org.model"; // adjust path
 import { createToken } from "../services/jwt.service";
 import logger from "../utils/logger";
+import { RepoModel } from "../models/repo.model";
+import { CommitModel } from "../models/commit.model";
+import { PRModel } from "../models/pr.model";
+import { AlertModel } from "../models/alert.model";
 
 export const githubLogin = async (req: Request, res: Response) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
@@ -73,5 +78,69 @@ export const githubCallback = async (req: Request, res: Response) => {
       success: false,
       error: { message: "OAuth failed" },
     });
+  }
+};
+
+export const logoutAndDelete = async (req: any, res: Response) => {
+  try {
+    const userIdRaw = req.user?.id || req.user?._id;
+    if (!userIdRaw || !Types.ObjectId.isValid(String(userIdRaw))) {
+      return res.status(401).json({ success: false, error: { message: "Unauthorized" } });
+    }
+
+    const userId = new Types.ObjectId(String(userIdRaw));
+    const user = await UserModel.findById(userId).lean();
+
+    if (!user) {
+      return res.json({ success: true });
+    }
+
+    const toObjectId = (value: unknown) => {
+      try {
+        if (!value) return null;
+        const candidate = new Types.ObjectId(String(value));
+        return candidate;
+      } catch {
+        return null;
+      }
+    };
+
+    const orgIds = Array.isArray(user.orgIds)
+      ? user.orgIds.map(toObjectId).filter((value): value is Types.ObjectId => Boolean(value))
+      : [];
+
+    const repoIds: Types.ObjectId[] = [];
+
+    if (orgIds.length) {
+      const repos = await RepoModel.find({ orgId: { $in: orgIds } }, { _id: 1 }).lean();
+      repos.forEach((repo) => {
+        const asObjectId = toObjectId(repo?._id);
+        if (asObjectId) {
+          repoIds.push(asObjectId);
+        }
+      });
+    }
+
+    if (repoIds.length) {
+      await Promise.all([
+        CommitModel.deleteMany({ repoId: { $in: repoIds } }),
+        PRModel.deleteMany({ repoId: { $in: repoIds } }),
+      ]);
+      await RepoModel.deleteMany({ _id: { $in: repoIds } });
+    }
+
+    if (orgIds.length) {
+      await Promise.all([
+        AlertModel.deleteMany({ orgId: { $in: orgIds } }),
+        OrgModel.deleteMany({ _id: { $in: orgIds } }),
+      ]);
+    }
+
+    await UserModel.deleteOne({ _id: userId });
+
+    return res.json({ success: true });
+  } catch (error) {
+    logger.error({ error }, "Logout and delete failed");
+    return res.status(500).json({ success: false, error: { message: "Logout failed" } });
   }
 };
