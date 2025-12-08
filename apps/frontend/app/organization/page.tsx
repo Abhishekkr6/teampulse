@@ -10,10 +10,7 @@ export default function CreateOrgPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const router = useRouter();
-  const { setActiveOrgId, fetchUser } = useUserStore((state) => ({
-    setActiveOrgId: state.setActiveOrgId,
-    fetchUser: state.fetchUser,
-  }));
+  const setActiveOrgId = useUserStore((state) => state.setActiveOrgId);
 
   const createOrg = async () => {
     const res = await api.post("/orgs", { name, slug });
@@ -24,8 +21,7 @@ export default function CreateOrgPage() {
       throw new Error("Organization payload missing identifiers");
     }
 
-    setActiveOrgId(activeOrgId.toString());
-    await fetchUser();
+    setActiveOrgId(activeOrgId.toString(), { refetch: true });
     router.push(`/organization/${org._id}/repos`);
   };
 

@@ -79,7 +79,7 @@ interface UserState {
   loading: boolean;
   activeOrgId: string | null;
   fetchUser: () => Promise<void>;
-  setActiveOrgId: (orgId: string | null) => void;
+  setActiveOrgId: (orgId: string | null, options?: { refetch?: boolean }) => void;
   logout: () => Promise<void>;
 }
 
@@ -119,7 +119,7 @@ export const useUserStore = create<UserState>((set) => ({
     }
   },
 
-  setActiveOrgId: (orgId) => {
+  setActiveOrgId: (orgId, options) => {
     const normalised = normaliseOrgId(orgId);
 
     if (typeof window !== "undefined") {
@@ -135,6 +135,10 @@ export const useUserStore = create<UserState>((set) => ({
     }
 
     set({ activeOrgId: normalised });
+
+    if (options?.refetch) {
+      useUserStore.getState().fetchUser();
+    }
   },
 
   logout: async () => {
