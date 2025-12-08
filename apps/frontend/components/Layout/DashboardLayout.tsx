@@ -1,8 +1,8 @@
 "use client";
 
 import Topbar from "./Topbar";
-import { useUserStore } from "../../store/userStore";
 import { useEffect } from "react";
+import { useUserStore } from "../../store/userStore";
 import { useLiveStore } from "../../store/liveStore";
 
 export default function DashboardLayout({
@@ -10,12 +10,11 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { fetchUser } = useUserStore();
-
   useEffect(() => {
+    const { fetchUser } = useUserStore.getState();
     fetchUser();
     useLiveStore.getState().init();
-  }, [fetchUser]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
