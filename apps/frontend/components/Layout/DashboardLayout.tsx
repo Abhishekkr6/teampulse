@@ -5,12 +5,17 @@ import { useEffect } from "react";
 import { useUserStore } from "../../store/userStore";
 import { useLiveStore } from "../../store/liveStore";
 
+let hasBootstrapped = false;
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   useEffect(() => {
+    if (hasBootstrapped) return;
+    hasBootstrapped = true;
+
     const { fetchUser } = useUserStore.getState();
     fetchUser();
     useLiveStore.getState().init();
