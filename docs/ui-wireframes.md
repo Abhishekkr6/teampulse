@@ -8,7 +8,7 @@
 - **Alerts**
 - **Developers**
 - **Repositories**
-- **Settings**
+<!-- Settings removed -->
 
 ---
 
@@ -60,8 +60,7 @@
         │      ├── page.tsx             # repo list
         │      └── [id]/
         │            └── page.tsx       # repo details
-        └── settings/
-              └── page.tsx
+
 
 /login
   └── page.tsx

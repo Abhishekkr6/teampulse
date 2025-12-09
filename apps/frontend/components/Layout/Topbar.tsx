@@ -13,7 +13,6 @@ import {
   LayoutDashboard,
   Menu,
   Search,
-  Settings,
   Users,
   X,
 } from "lucide-react";
@@ -33,7 +32,6 @@ const navLinks = [
   { name: "Alerts", href: "/dashboard/alerts", icon: Bell },
   { name: "Developers", href: "/dashboard/developers", icon: Users },
   { name: "Repositories", href: "/dashboard/repos", icon: FolderGit2 },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 export default function Topbar() {
