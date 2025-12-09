@@ -67,6 +67,8 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+export const getBackendBase = (): string => resolveBaseURL();
+
 export const deleteAccount = async (): Promise<boolean> => {
   try {
     const res = await api.delete("/auth/logout");

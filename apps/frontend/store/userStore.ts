@@ -99,24 +99,14 @@ export const useUserStore = create<UserState>((set) => ({
       const res = await api.get("/me");
       const raw = res.data.data;
 
-      const user = raw?.user ?? null;
+      const user = raw ?? null; // `/me` returns the user object directly
       const defaultOrgId = normaliseOrgId(raw?.defaultOrgId);
       const orgIdsRaw = raw?.orgIds ?? [];
 
-      const storedOrgId =
-        typeof window !== "undefined"
-          ? normaliseOrgId(window.sessionStorage.getItem("teampulse:lastOrgId"))
-          : null;
-
       const fallbackOrgId = extractPreferredOrgId(orgIdsRaw);
-
-      const activeOrgIdCandidate = orgIdExistsInList(orgIdsRaw, defaultOrgId)
+      const resolvedOrgId = orgIdExistsInList(orgIdsRaw, defaultOrgId)
         ? defaultOrgId
         : fallbackOrgId;
-
-      const resolvedOrgId = orgIdExistsInList(orgIdsRaw, storedOrgId)
-        ? storedOrgId
-        : activeOrgIdCandidate;
 
       set({
         user,
@@ -135,19 +125,6 @@ export const useUserStore = create<UserState>((set) => ({
 
   setActiveOrgId: (orgId, options) => {
     const normalised = normaliseOrgId(orgId);
-
-    if (typeof window !== "undefined") {
-      try {
-        if (normalised) {
-          window.sessionStorage.setItem("teampulse:lastOrgId", normalised);
-        } else {
-          window.sessionStorage.removeItem("teampulse:lastOrgId");
-        }
-      } catch (error) {
-        console.warn("Failed to persist active org selection", error);
-      }
-    }
-
     set({ activeOrgId: normalised });
 
     if (options?.refetch) {
