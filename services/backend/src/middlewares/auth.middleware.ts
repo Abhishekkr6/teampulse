@@ -5,10 +5,25 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   try {
     const header = req.headers.authorization;
 
-    if (!header || !header.startsWith("Bearer "))
-      return res.status(401).json({ success: false, error: { message: "No token" }});
+    let token: string | undefined;
+    if (header && header.startsWith("Bearer ")) {
+      token = header.split(" ")[1];
+    } else if (req.headers.cookie) {
+      // Minimal cookie parsing to extract `token`
+      const parts = req.headers.cookie.split(/;\s*/);
+      for (const part of parts) {
+        const [k, v] = part.split("=");
+        if (k === "token" && v) {
+          token = decodeURIComponent(v);
+          break;
+        }
+      }
+    }
 
-    const token = header.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ success: false, error: { message: "No token" }});
+    }
+
     const decoded = verifyToken(token);
 
     (req as any).user = decoded;
