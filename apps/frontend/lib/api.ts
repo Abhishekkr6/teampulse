@@ -67,3 +67,13 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
+
+export const deleteAccount = async (): Promise<boolean> => {
+  try {
+    const res = await api.delete("/auth/logout");
+    return Boolean(res?.data?.success);
+  } catch (err) {
+    console.error("Delete account failed", err);
+    return false;
+  }
+};

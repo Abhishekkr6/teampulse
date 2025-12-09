@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, GitPullRequest, Bell, Activity } from "lucide-react";
+import { LayoutDashboard, Users, GitPullRequest, Bell, Activity, Settings } from "lucide-react";
 
 const links = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -10,6 +10,7 @@ const links = [
   { name: "PRs", href: "/dashboard/prs", icon: GitPullRequest },
   { name: "Alerts", href: "/dashboard/alerts", icon: Bell },
   { name: "Developers", href: "/dashboard/developers", icon: Users },
+  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 export default function Sidebar() {
