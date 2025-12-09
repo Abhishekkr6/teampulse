@@ -1,4 +1,5 @@
 import express from "express";
+import cookieParser from "cookie-parser";
 import cors, { CorsOptions } from "cors";
 import helmet from "helmet";
 import mongoose from "mongoose";
@@ -25,6 +26,7 @@ app.use("/api/v1/webhooks", webhookRoutes);
    3) NORMAL PARSERS AFTER WEBHOOK ONLY
 ------------------------------------------------------ */
 app.use(express.json());
+app.use(cookieParser());
 app.use(
    helmet({
       contentSecurityPolicy: false,

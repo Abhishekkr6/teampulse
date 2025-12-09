@@ -8,16 +8,8 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     let token: string | undefined;
     if (header && header.startsWith("Bearer ")) {
       token = header.split(" ")[1];
-    } else if (req.headers.cookie) {
-      // Minimal cookie parsing to extract `token`
-      const parts = req.headers.cookie.split(/;\s*/);
-      for (const part of parts) {
-        const [k, v] = part.split("=");
-        if (k === "token" && v) {
-          token = decodeURIComponent(v);
-          break;
-        }
-      }
+    } else if ((req as any).cookies?.token) {
+      token = (req as any).cookies.token as string;
     }
 
     if (!token) {
