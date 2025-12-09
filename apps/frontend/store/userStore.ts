@@ -66,7 +66,10 @@ const extractPreferredOrgId = (orgIds: unknown): string | null => {
   return null;
 };
 
-const orgIdExistsInList = (orgIds: unknown, candidate: string | null): boolean => {
+const orgIdExistsInList = (
+  orgIds: unknown,
+  candidate: string | null
+): boolean => {
   if (!candidate || !Array.isArray(orgIds)) {
     return false;
   }
@@ -79,7 +82,10 @@ interface UserState {
   loading: boolean;
   activeOrgId: string | null;
   fetchUser: () => Promise<void>;
-  setActiveOrgId: (orgId: string | null, options?: { refetch?: boolean }) => void;
+  setActiveOrgId: (
+    orgId: string | null,
+    options?: { refetch?: boolean }
+  ) => void;
   logout: () => Promise<void>;
 }
 
@@ -91,29 +97,37 @@ export const useUserStore = create<UserState>((set) => ({
   fetchUser: async () => {
     try {
       const res = await api.get("/me");
-      const user = res.data.data as User | null;
-      const defaultOrgId = normaliseOrgId((user as unknown as { defaultOrgId?: unknown })?.defaultOrgId);
-      const orgIdsRaw = (user as unknown as { orgIds?: unknown })?.orgIds;
+      const raw = res.data.data;
+
+      const user = raw?.user ?? null;
+      const defaultOrgId = normaliseOrgId(raw?.defaultOrgId);
+      const orgIdsRaw = raw?.orgIds ?? [];
+
+      const storedOrgId =
+        typeof window !== "undefined"
+          ? normaliseOrgId(window.sessionStorage.getItem("teampulse:lastOrgId"))
+          : null;
+
       const fallbackOrgId = extractPreferredOrgId(orgIdsRaw);
-      const storedOrgId = typeof window !== "undefined"
-        ? normaliseOrgId(window.sessionStorage.getItem("teampulse:lastOrgId"))
-        : null;
+
       const activeOrgIdCandidate = orgIdExistsInList(orgIdsRaw, defaultOrgId)
         ? defaultOrgId
         : fallbackOrgId;
+
       const resolvedOrgId = orgIdExistsInList(orgIdsRaw, storedOrgId)
         ? storedOrgId
         : activeOrgIdCandidate;
+
       set({
         user,
         loading: false,
         activeOrgId: resolvedOrgId,
       });
-    } catch (err) {
-      console.log("User load error");
+    } catch (error) {
+      console.warn("Failed to fetch user", error);
       set({
-        loading: false,
         user: null,
+        loading: false,
         activeOrgId: null,
       });
     }
