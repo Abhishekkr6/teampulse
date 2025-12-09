@@ -66,6 +66,12 @@ export default function Topbar() {
     };
   }, [mobileNavOpen]);
 
+  // Bootstrap user on mount (single run, no dependencies)
+  useEffect(() => {
+    const { fetchUser } = useUserStore.getState();
+    fetchUser();
+  }, []);
+
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
 
