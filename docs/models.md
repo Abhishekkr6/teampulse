@@ -16,7 +16,7 @@ const UserSchema = new Schema({
   avatarUrl: String,
   role: { type: String, enum: ['admin','lead','dev','viewer'], default: 'dev' },
   orgIds: [{ type: Schema.Types.ObjectId, ref: 'Org' }],
-  settings: { type: Schema.Types.Mixed },
+  // settings removed
 }, { timestamps: true });
 
 UserSchema.index({ githubId: 1 });
@@ -31,17 +31,7 @@ UserSchema.index({ orgIds: 1 });
 const OrgSchema = new Schema({
   name: { type: String, required: true },
   slug: { type: String, required: true, unique: true },
-  settings: {
-    scoringWeights: {
-      commits: Number, mergedPRs: Number, issuesClosed: Number,
-      avgPRTime: Number, prSize: Number
-    },
-    alertThresholds: {
-      prOpenHours: { type: Number, default: 72 },
-      overloadScore: { type: Number, default: 3.0 }
-    },
-    dataRetentionDays: { type: Number, default: 90 }
-  }
+  // settings removed
 }, { timestamps: true });
 
 OrgSchema.index({ slug: 1 });
@@ -61,7 +51,7 @@ const RepoSchema = new Schema({
   defaultBranch: String,
   connectedAt: Date,
   webhookSecretHash: String,
-  settings: Schema.Types.Mixed
+  // settings removed
 }, { timestamps: true });
 
 RepoSchema.index({ orgId: 1 });
