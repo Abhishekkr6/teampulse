@@ -73,7 +73,7 @@ export const githubCallback = async (req: Request, res: Response) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? "strict" : "lax",
+      sameSite: isProd ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: "/",
     });
@@ -147,7 +147,8 @@ export const logoutAndDelete = async (req: any, res: Response) => {
     await UserModel.deleteOne({ _id: userId });
 
     // Clear auth cookie
-    res.clearCookie("token", { path: "/" });
+    const isProd = String(process.env.NODE_ENV).toLowerCase() === "production";
+    res.clearCookie("token", { path: "/", secure: isProd, sameSite: isProd ? "none" : "lax" });
 
     return res.json({ success: true });
   } catch (error) {
