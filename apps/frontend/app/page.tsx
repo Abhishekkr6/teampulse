@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "../components/Ui/Card";
+import { getBackendBase } from "../lib/api";
 import { useUserStore } from "../store/userStore";
 
 export default function HomePage() {
@@ -24,7 +25,7 @@ export default function HomePage() {
           Authenticate with GitHub to explore real-time engineering insights.
         </p>
         <a
-          href="https://teampulse-production.up.railway.app/api/v1/auth/github/login"
+          href={`${getBackendBase()}/auth/github/login`}
           className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
         >
           Login with GitHub
