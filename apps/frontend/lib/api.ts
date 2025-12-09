@@ -61,9 +61,8 @@ api.interceptors.request.use((config) => {
     config.baseURL = resolveBaseURL();
   }
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  // Do not use localStorage for auth; rely on httpOnly cookies
+  config.withCredentials = true;
 
   return config;
 });

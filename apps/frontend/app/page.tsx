@@ -10,27 +10,7 @@ export default function HomePage() {
   const setActiveOrgId = useUserStore((state) => state.setActiveOrgId);
 
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const token = url.searchParams.get("token");
-    const orgId = url.searchParams.get("orgId");
-
-    if (token) {
-      localStorage.setItem("token", token);
-    }
-
-    if (orgId) {
-      setActiveOrgId(orgId);
-    }
-
-    if (token || orgId) {
-      url.searchParams.delete("token");
-      url.searchParams.delete("orgId");
-      window.history.replaceState({}, "", url.toString());
-
-      if (token) {
-        router.push("/dashboard");
-      }
-    }
+    // No client storage for auth/org id; backend sets cookie and dashboard will fetch user/org
   }, [router, setActiveOrgId]);
 
   return (
