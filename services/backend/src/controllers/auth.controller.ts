@@ -53,16 +53,46 @@ export const githubCallback = async (req: Request, res: Response) => {
       await user.save();
     }
 
-    // ⭐ Auto-create default org if missing
+    // ⭐ Auto-create default org if missing, handle slug conflicts gracefully
     if (!user.defaultOrgId) {
-      const org = await OrgModel.create({
-        name: `${ghUser.login}'s Team`,
-        slug: ghUser.login.toLowerCase(),
-        createdBy: user._id,
-      });
+      const baseSlug = ghUser.login?.toLowerCase() || `user-${String(user._id)}`;
+      let org = await OrgModel.findOne({ slug: baseSlug });
+      if (!org) {
+        // Attempt create with unique slug; if conflict, generate a suffixed slug
+        try {
+          org = await OrgModel.create({
+            name: `${ghUser.login}'s Team`,
+            slug: baseSlug,
+            createdBy: user._id,
+          });
+        } catch (createErr: any) {
+          const isDup = typeof createErr?.message === "string" && createErr.message.includes("E11000");
+          if (!isDup) throw createErr;
+          // Generate unique slug with numeric suffix
+          for (let i = 2; i <= 50; i++) {
+            const candidate = `${baseSlug}-${i}`;
+            const exists = await OrgModel.findOne({ slug: candidate });
+            if (!exists) {
+              org = await OrgModel.create({
+                name: `${ghUser.login}'s Team`,
+                slug: candidate,
+                createdBy: user._id,
+              });
+              break;
+            }
+          }
+          if (!org) {
+            throw new Error("Unable to allocate unique org slug after multiple attempts");
+          }
+        }
+      }
 
       user.defaultOrgId = org._id.toString();
-      user.orgIds.push(org._id.toString());
+      const orgIdStr = org._id.toString();
+      if (!Array.isArray(user.orgIds)) user.orgIds = [] as any;
+      if (!user.orgIds.includes(orgIdStr)) {
+        user.orgIds.push(orgIdStr);
+      }
       await user.save();
     }
 
