@@ -22,12 +22,7 @@ export default function SettingsPage() {
       if (ok) {
         // Clear local state and token
         try { resetLive?.(); } catch {}
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("token");
-          localStorage.removeItem("orgId");
-          localStorage.removeItem("teampulse:lastRepos");
-          sessionStorage.removeItem("teampulse:lastOrgId");
-        }
+        // No client-side storage clean needed; server clears httpOnly cookie
         router.replace("/");
       } else {
         alert("Failed to delete account. Please try again.");

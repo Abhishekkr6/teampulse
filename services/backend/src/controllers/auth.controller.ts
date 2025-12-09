@@ -68,10 +68,18 @@ export const githubCallback = async (req: Request, res: Response) => {
       defaultOrgId: user.defaultOrgId,
     });
 
-    // ⭐ Send orgId to frontend via redirect
-    return res.redirect(
-      `${process.env.FRONTEND_URL}/?token=${token}&orgId=${user.defaultOrgId}`
-    );
+    // Set httpOnly cookie with JWT; avoid storing in localStorage
+    const isProd = String(process.env.NODE_ENV).toLowerCase() === "production";
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "strict" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+
+    // Redirect without leaking token/orgId in URL
+    return res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
   } catch (err) {
     logger.error({ err }, "GitHub OAuth callback failed");
     return res.status(500).json({
@@ -137,6 +145,9 @@ export const logoutAndDelete = async (req: any, res: Response) => {
     }
 
     await UserModel.deleteOne({ _id: userId });
+
+    // Clear auth cookie
+    res.clearCookie("token", { path: "/" });
 
     return res.json({ success: true });
   } catch (error) {
