@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { FloatingDock } from "../Ui/floating-dock";
 import { useUserStore } from "../../store/userStore";
+import { getBackendBase } from "../../lib/api";
 
 type User = {
   name: string;
@@ -37,7 +38,7 @@ const navLinks = [
 ];
 
 export default function Topbar() {
-  const { user } = useUserStore() as { user: User | null };
+  const { user, loading } = useUserStore() as { user: User | null; loading: boolean };
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -159,9 +160,33 @@ export default function Topbar() {
                   <p className="text-sm font-semibold text-slate-900">{user.name}</p>
                   {user.email && <p className="text-xs text-slate-500">{user.email}</p>}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      useUserStore.getState().logout().then(() => {
+                        window.location.href = "/";
+                      });
+                    } catch {}
+                  }}
+                  className="ml-2 inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                >
+                  Logout
+                </button>
               </div>
             ) : (
-              <div className="h-8 w-8 rounded-full bg-slate-200" />
+              <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600">
+                <span className={`inline-flex h-2 w-2 rounded-full ${loading ? "bg-amber-400" : "bg-rose-500"}`} />
+                {loading ? "Fetching user…" : "Not authenticated"}
+                {!loading && (
+                  <a
+                    href={`${getBackendBase()}/auth/github/login`}
+                    className="ml-2 inline-flex items-center rounded-full bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-700"
+                  >
+                    Login
+                  </a>
+                )}
+              </div>
             )}
           </div>
 
