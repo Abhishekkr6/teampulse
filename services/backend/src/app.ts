@@ -33,11 +33,25 @@ app.use(
    })
 );
 
+const resolvedFrontend = (process.env.FRONTEND_URL || "").trim();
+const allowedOrigins = [
+   "http://localhost:3000",
+   "https://teampulse18.vercel.app",
+   "https://teampulse-production.up.railway.app",
+];
+if (resolvedFrontend && !allowedOrigins.includes(resolvedFrontend)) {
+   allowedOrigins.push(resolvedFrontend);
+}
+
 const corsOptions: CorsOptions = {
-   origin: [
-      "http://localhost:3000", // local dev
-      "https://teampulse18.vercel.app", // production placeholder
-   ],
+   origin: (origin, callback) => {
+      // Allow same-origin (no origin header) and known frontends
+      if (!origin || allowedOrigins.includes(origin)) {
+         callback(null, true);
+      } else {
+         callback(null, false);
+      }
+   },
    methods: ["GET", "POST", "PUT", "DELETE"],
    credentials: true,
 };
