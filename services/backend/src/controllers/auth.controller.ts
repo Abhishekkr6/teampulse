@@ -23,6 +23,10 @@ export const githubLogin = async (req: Request, res: Response) => {
 export const githubCallback = async (req: Request, res: Response) => {
   try {
     const code = req.query.code as string;
+    if (!code) {
+      logger.warn({ query: req.query }, "Missing OAuth code in callback");
+      return res.status(400).json({ success: false, error: { message: "Missing OAuth code" } });
+    }
 
     const accessToken = await exchangeCodeForToken(code);
     const ghUser = await getGithubUser(accessToken);
@@ -79,13 +83,15 @@ export const githubCallback = async (req: Request, res: Response) => {
     });
 
     // Redirect without leaking token/orgId in URL
+    if (!process.env.FRONTEND_URL) {
+      logger.warn("FRONTEND_URL is not set; responding with JSON");
+      return res.json({ success: true });
+    }
     return res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
   } catch (err) {
-    logger.error({ err }, "GitHub OAuth callback failed");
-    return res.status(500).json({
-      success: false,
-      error: { message: "OAuth failed" },
-    });
+    const detail = (err as any)?.message || "Unknown error";
+    logger.error({ err, detail }, "GitHub OAuth callback failed");
+    return res.status(500).json({ success: false, error: { message: "OAuth failed", detail } });
   }
 };
 
