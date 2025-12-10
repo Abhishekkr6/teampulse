@@ -175,17 +175,12 @@ export default function Topbar() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600">
-                <span className={`inline-flex h-2 w-2 rounded-full ${loading ? "bg-amber-400" : "bg-rose-500"}`} />
-                {loading ? "Fetching user…" : "Not authenticated"}
-                {!loading && (
-                  <a
-                    href={`${getBackendBase()}/auth/github/login`}
-                    className="ml-2 inline-flex items-center rounded-full bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-700"
-                  >
-                    Login
-                  </a>
-                )}
+              <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm">
+                <div className="h-8 w-8 rounded-full bg-slate-200 animate-pulse" />
+                <div className="hidden sm:block">
+                  <div className="h-3 w-24 rounded bg-slate-200 animate-pulse mb-1" />
+                  <div className="h-2 w-32 rounded bg-slate-100 animate-pulse" />
+                </div>
               </div>
             )}
           </div>
@@ -209,7 +204,7 @@ export default function Topbar() {
                 className="h-9 w-9 rounded-full border border-slate-200"
               />
             ) : (
-              <div className="h-9 w-9 rounded-full bg-slate-200" />
+              <div className="h-9 w-9 rounded-full bg-slate-200 animate-pulse" />
             )}
 
             <button
@@ -290,7 +285,13 @@ export default function Topbar() {
                   </div>
                 </div>
               ) : (
-                <div className="mt-auto h-10 w-10 rounded-full bg-slate-200" />
+                <div className="mt-auto flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="h-10 w-10 rounded-full bg-slate-200 animate-pulse" />
+                  <div className="flex-1">
+                    <div className="h-3 w-24 rounded bg-slate-200 animate-pulse mb-1" />
+                    <div className="h-2 w-32 rounded bg-slate-100 animate-pulse" />
+                  </div>
+                </div>
               )}
             </div>
           </aside>
