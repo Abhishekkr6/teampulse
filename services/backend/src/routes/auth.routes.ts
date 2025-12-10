@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { githubLogin, githubCallback, logoutAndDelete } from "../controllers/auth.controller";
+import { githubLogin, githubCallback } from "../controllers/auth.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
 
 router.get("/github/login", githubLogin);
 router.get("/github/callback", githubCallback);
-router.delete("/logout", authMiddleware, logoutAndDelete);
+// Logout route removed per request
 
 export default router;

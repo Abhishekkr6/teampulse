@@ -157,41 +157,9 @@ export const useUserStore = create<UserState>((set) => ({
     }
   },
 
+  // Logout removed per request; keep no-op to avoid runtime errors
   logout: async () => {
-    try {
-      await api.delete("/auth/logout");
-    } catch (error) {
-      console.warn("Failed to revoke session on server", error);
-    }
-
-    try {
-      if (typeof window !== "undefined") {
-        // clear local token and axios defaults
-        setToken(null);
-        localStorage.removeItem("teampulse:lastRepos");
-
-        const session = window.sessionStorage;
-        session.removeItem("teampulse:lastOrgId");
-
-        const sessionKeys: string[] = [];
-        for (let index = 0; index < session.length; index += 1) {
-          const key = session.key(index);
-          if (key && key.startsWith("repo-summary:")) {
-            sessionKeys.push(key);
-          }
-        }
-        sessionKeys.forEach((key) => session.removeItem(key));
-      }
-    } catch (error) {
-      console.warn("Failed to clear stored auth state", error);
-    }
-
-    try {
-      useLiveStore.getState().reset();
-    } catch (error) {
-      console.warn("Failed to reset live store", error);
-    }
-
-    set({ user: null, loading: false, activeOrgId: null });
+    set({ user: useUserStore.getState().user, loading: false });
+    return Promise.resolve();
   },
 }));
