@@ -30,15 +30,9 @@ const resolveBaseURL = (): string => {
 
   if (typeof window !== "undefined") {
     const origin = window.location.origin.replace(/\/$/, "");
+    // In dev, prefer same-origin relative path to leverage Next.js rewrites
     if (/localhost|127\.0\.0\.1/i.test(origin)) {
-      const localBaseCandidate =
-        (process.env.NEXT_PUBLIC_LOCAL_BACKEND_URL ?? DEFAULT_LOCAL_BASE).trim();
-
-      if (localBaseCandidate) {
-        return localBaseCandidate.replace(/\/$/, "");
-      }
-
-      return DEFAULT_LOCAL_BASE;
+      return "/api/v1";
     }
 
     console.warn(
@@ -51,7 +45,7 @@ const resolveBaseURL = (): string => {
     return DEFAULT_REMOTE_BASE;
   }
 
-  return DEFAULT_LOCAL_BASE;
+  return "/api/v1";
 };
 
 export const api = axios.create();
