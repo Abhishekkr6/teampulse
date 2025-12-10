@@ -1,4 +1,5 @@
 import { OrgModel } from "../models/org.model";
+import { UserModel } from "../models/user.model";
 
 export const requireOrgAccess = async (req: any, res: any, next: any) => {
   const user = req.user;
@@ -27,7 +28,12 @@ export const requireOrgAccess = async (req: any, res: any, next: any) => {
   }
 
   if (String(createdBy) !== String(userId)) {
-    return res.status(403).json({ error: "Not allowed" });
+    // Allow if user is member of org via orgIds
+    const userDoc = await UserModel.findById(userId, { orgIds: 1 }).lean();
+    const orgIds = Array.isArray(userDoc?.orgIds) ? userDoc!.orgIds.map(String) : [];
+    if (!orgIds.includes(String(orgId))) {
+      return res.status(403).json({ error: "Not allowed" });
+    }
   }
 
   next();
