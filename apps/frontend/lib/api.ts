@@ -29,16 +29,8 @@ const resolveBaseURL = (): string => {
   }
 
   if (typeof window !== "undefined") {
-    const origin = window.location.origin.replace(/\/$/, "");
-    // In dev, prefer same-origin relative path to leverage Next.js rewrites
-    if (/localhost|127\.0\.0\.1/i.test(origin)) {
-      return "/api/v1";
-    }
-
-    console.warn(
-      "NEXT_PUBLIC_BACKEND_URL missing; falling back to default production API host."
-    );
-    return DEFAULT_REMOTE_BASE;
+    // Always use same-origin relative path in browser; rewrites will proxy
+    return "/api/v1";
   }
 
   if (process.env.NODE_ENV === "production") {
