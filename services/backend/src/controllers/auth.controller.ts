@@ -112,12 +112,13 @@ export const githubCallback = async (req: Request, res: Response) => {
       path: "/",
     });
 
-    // Redirect without leaking token/orgId in URL
+    // Redirect with token for frontend to set first-party cookie
     if (!process.env.FRONTEND_URL) {
       logger.warn("FRONTEND_URL is not set; responding with JSON");
-      return res.json({ success: true });
+      return res.json({ success: true, token });
     }
-    return res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
+    const frontend = process.env.FRONTEND_URL.replace(/\/$/, "");
+    return res.redirect(`${frontend}/dashboard?token=${encodeURIComponent(token)}`);
   } catch (err) {
     const detail = (err as any)?.message || "Unknown error";
     logger.error({ err, detail }, "GitHub OAuth callback failed");
