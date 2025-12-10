@@ -23,21 +23,22 @@ const pickEnvBase = (): string | undefined => {
 };
 
 const resolveBaseURL = (): string => {
+  // In the browser, always use same-origin path so Next rewrites proxy
+  if (typeof window !== "undefined") {
+    return "/api/v1";
+  }
+
+  // On the server, allow env override for direct backend calls
   const envBase = pickEnvBase();
   if (envBase) {
     return envBase.replace(/\/$/, "");
-  }
-
-  if (typeof window !== "undefined") {
-    // Always use same-origin relative path in browser; rewrites will proxy
-    return "/api/v1";
   }
 
   if (process.env.NODE_ENV === "production") {
     return DEFAULT_REMOTE_BASE;
   }
 
-  return "/api/v1";
+  return DEFAULT_LOCAL_BASE;
 };
 
 export const api = axios.create();
