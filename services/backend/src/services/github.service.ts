@@ -40,7 +40,7 @@ export const getGithubUser = async (token: string) => {
   if (!token) throw new Error("Missing GitHub access token");
   try {
     const res = await axios.get("https://api.github.com/user", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `token ${token}` },
     });
     return res.data;
   } catch (error: any) {
@@ -54,7 +54,7 @@ export const getGithubEmail = async (token: string) => {
   if (!token) throw new Error("Missing GitHub access token");
   try {
     const res = await axios.get("https://api.github.com/user/emails", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `token ${token}` },
     });
     return res.data.find((e: any) => e.primary)?.email;
   } catch (error: any) {
