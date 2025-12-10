@@ -4,9 +4,10 @@ export function middleware(req: NextRequest) {
   const url = new URL(req.url);
   const tokenParam = url.searchParams.get("token");
 
-  // If token present in query, set it as httpOnly cookie on frontend domain
+  // If token present, set secure httpOnly cookie but do not redirect.
+  // Let client JS strip the query and set localStorage synchronously.
   if (tokenParam) {
-    const res = NextResponse.redirect(new URL(url.pathname, req.url));
+    const res = NextResponse.next();
     res.cookies.set("token", tokenParam, {
       httpOnly: true,
       secure: true,
