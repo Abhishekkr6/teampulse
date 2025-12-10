@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { api } from "../lib/api";
+import { api, setToken, getToken } from "../lib/api";
 import { useLiveStore } from "./liveStore";
 
 interface User {
@@ -81,6 +81,7 @@ interface UserState {
   user: User | null;
   loading: boolean;
   activeOrgId: string | null;
+  initFromUrl: () => void;
   fetchUser: () => Promise<void>;
   setActiveOrgId: (
     orgId: string | null,
@@ -94,8 +95,32 @@ export const useUserStore = create<UserState>((set) => ({
   loading: true,
   activeOrgId: null,
 
+  // Capture ?token= from OAuth redirect, store in localStorage, and clean URL
+  initFromUrl: () => {
+    try {
+      if (typeof window === "undefined") return;
+      const url = new URL(window.location.href);
+      const tokenParam = url.searchParams.get("token");
+      if (tokenParam) {
+        setToken(tokenParam);
+        url.searchParams.delete("token");
+        window.history.replaceState({}, "", url.toString());
+      }
+    } catch {}
+  },
+
   fetchUser: async () => {
     try {
+      // client only
+      if (typeof window === "undefined") return;
+      // ensure we initialize token from URL once
+      useUserStore.getState().initFromUrl();
+      const token = getToken();
+      if (!token) {
+        set({ user: null, loading: false });
+        return;
+      }
+
       const res = await api.get("/me");
       const raw = res.data.data;
 
@@ -141,7 +166,8 @@ export const useUserStore = create<UserState>((set) => ({
 
     try {
       if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
+        // clear local token and axios defaults
+        setToken(null);
         localStorage.removeItem("teampulse:lastRepos");
 
         const session = window.sessionStorage;
