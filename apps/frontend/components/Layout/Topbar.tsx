@@ -67,8 +67,9 @@ export default function Topbar() {
     };
   }, [mobileNavOpen]);
 
-  // Bootstrap user on mount (single run, no dependencies)
+  // Bootstrap user on mount (client-only). Guard to avoid SSR and loops.
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const { fetchUser } = useUserStore.getState();
     fetchUser();
   }, []);

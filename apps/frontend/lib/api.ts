@@ -43,18 +43,53 @@ const resolveBaseURL = (): string => {
 
 export const api = axios.create();
 
+// ---- Auth token helpers ----
+const TOKEN_KEY = "token";
+
+export const getToken = (): string | null => {
+  try {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
+
+export const setToken = (token: string | null) => {
+  try {
+    if (typeof window === "undefined") return;
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+      delete api.defaults.headers.common["Authorization"];
+    }
+  } catch {}
+};
+
+// Initialize axios default Authorization from storage on load
+if (typeof window !== "undefined") {
+  const existing = getToken();
+  if (existing) {
+    api.defaults.headers.common["Authorization"] = `Bearer ${existing}`;
+  }
+}
+
 api.interceptors.request.use((config) => {
   if (!config.baseURL) {
     config.baseURL = resolveBaseURL();
   }
 
-  // Do not use localStorage for auth; rely on httpOnly cookies
-  config.withCredentials = true;
-
-  // Forward token as Bearer if available in cookie (server-side fetch) or header
-  // In browser, the cookie will be sent automatically as first-party
-  if (typeof window === "undefined") {
-    // On server, try to rely on axios default; nothing to do here
+  // Use Bearer from localStorage for client-side requests
+  if (typeof window !== "undefined") {
+    const token = getToken();
+    if (token) {
+      config.headers = config.headers || {};
+      (config.headers as any)["Authorization"] = `Bearer ${token}`;
+    }
+    // Avoid cookie-based auth for cross-site; rely on Bearer
+    config.withCredentials = false;
   }
 
   return config;
