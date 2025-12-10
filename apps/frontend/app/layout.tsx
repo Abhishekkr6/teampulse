@@ -27,6 +27,23 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-100 text-slate-900`}
       >
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(){
+                try {
+                  var url = new URL(window.location.href);
+                  var token = url.searchParams.get('token');
+                  if (token) {
+                    localStorage.setItem('token', token);
+                    url.searchParams.delete('token');
+                    window.history.replaceState({}, '', url.toString());
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
         {children}
       </body>
     </html>
