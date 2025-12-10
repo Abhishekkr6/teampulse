@@ -50,6 +50,12 @@ api.interceptors.request.use((config) => {
   // Do not use localStorage for auth; rely on httpOnly cookies
   config.withCredentials = true;
 
+  // Forward token as Bearer if available in cookie (server-side fetch) or header
+  // In browser, the cookie will be sent automatically as first-party
+  if (typeof window === "undefined") {
+    // On server, try to rely on axios default; nothing to do here
+  }
+
   return config;
 });
 
