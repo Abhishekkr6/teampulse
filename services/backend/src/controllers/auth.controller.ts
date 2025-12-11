@@ -6,7 +6,7 @@ import {
   getGithubEmail,
 } from "../services/github.service";
 import { UserModel } from "../models/user.model";
-import { OrgModel } from "../models/org.model"; // adjust path
+import { OrgModel } from "../models/org.model";
 import { createToken } from "../services/jwt.service";
 import logger from "../utils/logger";
 import { RepoModel } from "../models/repo.model";
@@ -25,7 +25,9 @@ export const githubCallback = async (req: Request, res: Response) => {
     const code = req.query.code as string;
     if (!code) {
       logger.warn({ query: req.query }, "Missing OAuth code in callback");
-      return res.status(400).json({ success: false, error: { message: "Missing OAuth code" } });
+      return res
+        .status(400)
+        .json({ success: false, error: { message: "Missing OAuth code" } });
     }
 
     const accessToken = await exchangeCodeForToken(code);
@@ -54,12 +56,16 @@ export const githubCallback = async (req: Request, res: Response) => {
       await user.save();
     }
 
-    // Ensure default org exists and assign defaultOrgId/orgIds
+    // Ensure default org exists and assign defaultOrgId/orgIds (store as ObjectId)
     if (!user.defaultOrgId) {
-      const baseSlug = ghUser.login?.toLowerCase() || `user-${String(user._id)}`;
+      const baseSlug =
+        (ghUser.login && String(ghUser.login).toLowerCase()) ||
+        `user-${String(user._id)}`;
+
       let org = await OrgModel.findOne({ slug: baseSlug });
+
       if (!org) {
-        // Attempt create with unique slug; if conflict, generate a suffixed slug
+        // Try create; if duplicate slug error occurs, generate unique slug
         try {
           org = await OrgModel.create({
             name: `${ghUser.login}'s Team`,
@@ -67,10 +73,13 @@ export const githubCallback = async (req: Request, res: Response) => {
             createdBy: user._id,
           });
         } catch (createErr: any) {
-          const isDup = typeof createErr?.message === "string" && createErr.message.includes("E11000");
+          const isDup =
+            typeof createErr?.message === "string" &&
+            createErr.message.includes("E11000");
           if (!isDup) throw createErr;
+
           // Generate unique slug with numeric suffix
-          for (let i = 2; i <= 50; i++) {
+          for (let i = 2; i <= 100; i++) {
             const candidate = `${baseSlug}-${i}`;
             const exists = await OrgModel.findOne({ slug: candidate });
             if (!exists) {
@@ -83,29 +92,54 @@ export const githubCallback = async (req: Request, res: Response) => {
             }
           }
           if (!org) {
-            throw new Error("Unable to allocate unique org slug after multiple attempts");
+            throw new Error(
+              "Unable to allocate unique org slug after multiple attempts"
+            );
           }
         }
       }
 
-      user.defaultOrgId = org._id.toString();
-      const orgIdStr = org._id.toString();
-      if (!Array.isArray(user.orgIds)) user.orgIds = [] as any;
-      if (!user.orgIds.includes(orgIdStr)) {
-        user.orgIds.push(orgIdStr);
+      // Store ObjectId references (CRITICAL)
+      user.defaultOrgId = org._id as any;
+
+      if (!Array.isArray(user.orgIds)) user.orgIds = [];
+
+      const already = (user.orgIds as any[]).some(
+        (entry) =>
+          String(entry) === String(org._id) ||
+          (entry && typeof entry === "object" && String(entry._id) === String(org._id))
+      );
+
+      if (!already) {
+        user.orgIds.push(org._id as any);
       }
+
       await user.save();
     }
 
-    // Create application JWT (payload minimal: user id)
-    const token = createToken({ id: user._id });
+    // Create application JWT (payload minimal: user id as string)
+    const token = createToken({ id: String(user._id) });
 
-    // Set httpOnly cookie; secure in production, lax in dev for localhost
+    // Set httpOnly cookie; secure in production, none for cross-site if required
     const isProd = String(process.env.NODE_ENV).toLowerCase() === "production";
+    // Use 'none' for sameSite in production if frontend is on different domain,
+    // otherwise 'lax' is safer for same-site deployments.
+    const sameSite = isProd ? "none" : "lax";
+
     res.cookie("teampulse_token", token, {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? "none" : "lax",
+      sameSite: sameSite as any,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+
+    // Also set fallback cookie name for any older clients that expect 'token'
+    // (optional, safe): keep short lifespan equal to same token
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: sameSite as any,
       maxAge: 30 * 24 * 60 * 60 * 1000,
       path: "/",
     });
@@ -120,7 +154,9 @@ export const githubCallback = async (req: Request, res: Response) => {
   } catch (err) {
     logger.error({ err }, "GitHub OAuth callback failed");
     const message = (err as any)?.message || "OAuth callback failed";
-    return res.status(500).json({ success: false, error: { message } });
+    return res
+      .status(500)
+      .json({ success: false, error: { message } });
   }
 };
 
@@ -128,7 +164,9 @@ export const logoutAndDelete = async (req: any, res: Response) => {
   try {
     const userIdRaw = req.user?.id || req.user?._id;
     if (!userIdRaw || !Types.ObjectId.isValid(String(userIdRaw))) {
-      return res.status(401).json({ success: false, error: { message: "Unauthorized" } });
+      return res
+        .status(401)
+        .json({ success: false, error: { message: "Unauthorized" } });
     }
 
     const userId = new Types.ObjectId(String(userIdRaw));
@@ -149,13 +187,18 @@ export const logoutAndDelete = async (req: any, res: Response) => {
     };
 
     const orgIds = Array.isArray(user.orgIds)
-      ? user.orgIds.map(toObjectId).filter((value): value is Types.ObjectId => Boolean(value))
+      ? user.orgIds
+          .map(toObjectId)
+          .filter((value): value is Types.ObjectId => Boolean(value))
       : [];
 
     const repoIds: Types.ObjectId[] = [];
 
     if (orgIds.length) {
-      const repos = await RepoModel.find({ orgId: { $in: orgIds } }, { _id: 1 }).lean();
+      const repos = await RepoModel.find(
+        { orgId: { $in: orgIds } },
+        { _id: 1 }
+      ).lean();
       repos.forEach((repo) => {
         const asObjectId = toObjectId(repo?._id);
         if (asObjectId) {
@@ -181,13 +224,17 @@ export const logoutAndDelete = async (req: any, res: Response) => {
 
     await UserModel.deleteOne({ _id: userId });
 
-    // Clear session cookie on logout (respect SameSite for cross-site)
+    // Clear session cookies on logout (respect SameSite for cross-site)
     const isProdLogout = String(process.env.NODE_ENV).toLowerCase() === "production";
-    res.clearCookie("teampulse_token", { path: "/", secure: isProdLogout, sameSite: isProdLogout ? "none" : "lax" });
+    const sameSite = isProdLogout ? "none" : "lax";
+    res.clearCookie("teampulse_token", { path: "/", secure: isProdLogout, sameSite });
+    res.clearCookie("token", { path: "/", secure: isProdLogout, sameSite });
 
     return res.json({ success: true });
   } catch (error) {
     logger.error({ error }, "Logout and delete failed");
-    return res.status(500).json({ success: false, error: { message: "Logout failed" } });
+    return res
+      .status(500)
+      .json({ success: false, error: { message: "Logout failed" } });
   }
 };
