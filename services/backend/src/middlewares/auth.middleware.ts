@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../services/jwt.service";
 import { JwtPayload } from "jsonwebtoken";
 
-export const authMiddleware = (req: Request, res: Response, Next: NextFunction) => {
+export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   try {
     const header = req.headers.authorization;
 
@@ -32,7 +32,7 @@ export const authMiddleware = (req: Request, res: Response, Next: NextFunction) 
     (req as any).userId = payload.id ?? payload._id ?? payload.sub;
     (req as any).user = payload; // keep backward compatibility if needed
 
-    Next();
+    next();
   } catch (err) {
     return res.status(401).json({
       success: false,
