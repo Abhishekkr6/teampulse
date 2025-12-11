@@ -14,12 +14,23 @@ import { CommitModel } from "../models/commit.model";
 import { PRModel } from "../models/pr.model";
 import { AlertModel } from "../models/alert.model";
 
+/**
+ * Redirect user to GitHub OAuth page
+ */
 export const githubLogin = async (req: Request, res: Response) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const redirect = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=user:email`;
   return res.redirect(redirect);
 };
 
+/**
+ * GitHub OAuth callback:
+ * - exchange code for access token
+ * - fetch GitHub profile + primary email
+ * - upsert user by githubId (no duplicates)
+ * - ensure a valid default org exists and is stored as ObjectId
+ * - issue httpOnly cookie(s) with JWT
+ */
 export const githubCallback = async (req: Request, res: Response) => {
   try {
     const code = req.query.code as string;
@@ -34,41 +45,57 @@ export const githubCallback = async (req: Request, res: Response) => {
     const ghUser = await getGithubUser(accessToken);
     const email = await getGithubEmail(accessToken);
 
-    // Identify and upsert user strictly by githubId
+    // Find user by githubId (unique canonical identity)
+    // If multiple records somehow exist, pick the first and consolidate later with a migration script.
     let user = await UserModel.findOne({ githubId: ghUser.id });
 
     if (!user) {
       user = await UserModel.create({
         githubId: ghUser.id,
         login: ghUser.login,
-        name: ghUser.name,
+        name: ghUser.name ?? ghUser.login,
         avatarUrl: ghUser.avatar_url,
         email,
         role: "dev",
         githubAccessToken: accessToken,
+        orgIds: [],
       });
     } else {
+      // Update latest profile + token
       user.githubAccessToken = accessToken;
-      user.login = ghUser.login;
-      user.name = ghUser.name;
-      user.avatarUrl = ghUser.avatar_url;
+      user.login = ghUser.login ?? user.login;
+      user.name = ghUser.name ?? user.name;
+      user.avatarUrl = ghUser.avatar_url ?? user.avatarUrl;
       user.email = email ?? user.email;
+      // Normalize orgIds array to ObjectIds on-the-fly if needed
+      if (!Array.isArray(user.orgIds)) user.orgIds = [];
       await user.save();
     }
 
-    // Ensure default org exists and assign defaultOrgId/orgIds (store as ObjectId)
-    if (!user.defaultOrgId) {
+    // Ensure default org exists and is valid. If user's defaultOrgId references a missing org, recreate.
+    const ensureOrgForUser = async () => {
+      // If user has a defaultOrgId, verify it exists
+      if (user.defaultOrgId) {
+        try {
+          const existing = await OrgModel.findById(user.defaultOrgId).lean();
+          if (existing) return existing;
+          // If referenced org was deleted, fallthrough to create new
+        } catch {
+          // ignore and create new
+        }
+      }
+
+      // Create or find by slug
       const baseSlug =
         (ghUser.login && String(ghUser.login).toLowerCase()) ||
         `user-${String(user._id)}`;
-
       let org = await OrgModel.findOne({ slug: baseSlug });
 
       if (!org) {
-        // Try create; if duplicate slug error occurs, generate unique slug
+        // Try create; if duplicate occurs, attempt suffixes
         try {
           org = await OrgModel.create({
-            name: `${ghUser.login}'s Team`,
+            name: `${ghUser.login ?? user.name}'s Team`,
             slug: baseSlug,
             createdBy: user._id,
           });
@@ -78,13 +105,12 @@ export const githubCallback = async (req: Request, res: Response) => {
             createErr.message.includes("E11000");
           if (!isDup) throw createErr;
 
-          // Generate unique slug with numeric suffix
           for (let i = 2; i <= 100; i++) {
             const candidate = `${baseSlug}-${i}`;
             const exists = await OrgModel.findOne({ slug: candidate });
             if (!exists) {
               org = await OrgModel.create({
-                name: `${ghUser.login}'s Team`,
+                name: `${ghUser.login ?? user.name}'s Team`,
                 slug: candidate,
                 createdBy: user._id,
               });
@@ -99,33 +125,38 @@ export const githubCallback = async (req: Request, res: Response) => {
         }
       }
 
-      // Store ObjectId references (CRITICAL)
-      user.defaultOrgId = org._id as any;
-
+      // Save ObjectId references reliably
+      const orgId = org._id as Types.ObjectId;
+      user.defaultOrgId = orgId;
       if (!Array.isArray(user.orgIds)) user.orgIds = [];
-
       const already = (user.orgIds as any[]).some(
         (entry) =>
-          String(entry) === String(org._id) ||
-          (entry && typeof entry === "object" && String(entry._id) === String(org._id))
+          String(entry) === String(orgId) ||
+          (entry && typeof entry === "object" && String(entry._id) === String(orgId))
       );
-
-      if (!already) {
-        user.orgIds.push(org._id as any);
-      }
-
+      if (!already) user.orgIds.push(orgId as any);
       await user.save();
-    }
+      return org;
+    };
+
+    await ensureOrgForUser();
 
     // Create application JWT (payload minimal: user id as string)
     const token = createToken({ id: String(user._id) });
 
-    // Set httpOnly cookie; secure in production, none for cross-site if required
+    // Clear any stale/old cookies first to avoid conflicts (best-effort)
+    try {
+      res.clearCookie("teampulse_token", { path: "/" });
+      res.clearCookie("token", { path: "/" });
+    } catch {
+      /* ignore */
+    }
+
+    // Set httpOnly cookie; secure in production, choose sameSite based on deployment
     const isProd = String(process.env.NODE_ENV).toLowerCase() === "production";
-    // Use 'none' for sameSite in production if frontend is on different domain,
-    // otherwise 'lax' is safer for same-site deployments.
     const sameSite = isProd ? "none" : "lax";
 
+    // Primary cookie
     res.cookie("teampulse_token", token, {
       httpOnly: true,
       secure: isProd,
@@ -134,8 +165,7 @@ export const githubCallback = async (req: Request, res: Response) => {
       path: "/",
     });
 
-    // Also set fallback cookie name for any older clients that expect 'token'
-    // (optional, safe): keep short lifespan equal to same token
+    // Fallback/compat cookie name for older clients expecting 'token'
     res.cookie("token", token, {
       httpOnly: true,
       secure: isProd,
@@ -154,12 +184,14 @@ export const githubCallback = async (req: Request, res: Response) => {
   } catch (err) {
     logger.error({ err }, "GitHub OAuth callback failed");
     const message = (err as any)?.message || "OAuth callback failed";
-    return res
-      .status(500)
-      .json({ success: false, error: { message } });
+    return res.status(500).json({ success: false, error: { message } });
   }
 };
 
+/**
+ * Delete user and cleanup all related data (repos, commits, PRs, alerts, orgs).
+ * Clears cookies on success.
+ */
 export const logoutAndDelete = async (req: any, res: Response) => {
   try {
     const userIdRaw = req.user?.id || req.user?._id;
@@ -173,6 +205,11 @@ export const logoutAndDelete = async (req: any, res: Response) => {
     const user = await UserModel.findById(userId).lean();
 
     if (!user) {
+      // ensure cookies cleared even if user not found
+      const isProdLogout = String(process.env.NODE_ENV).toLowerCase() === "production";
+      const sameSite = isProdLogout ? "none" : "lax";
+      res.clearCookie("teampulse_token", { path: "/", secure: isProdLogout, sameSite });
+      res.clearCookie("token", { path: "/", secure: isProdLogout, sameSite });
       return res.json({ success: true });
     }
 

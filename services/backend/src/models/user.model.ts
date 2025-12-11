@@ -1,4 +1,4 @@
-import { Schema, model, Document } from "mongoose";
+import { Schema, model, Document, Types } from "mongoose";
 
 export interface IUser extends Document {
   githubId: string;
@@ -8,9 +8,9 @@ export interface IUser extends Document {
   avatarUrl?: string;
   role: "admin" | "lead" | "dev" | "viewer";
 
-  orgIds: string[];
+  orgIds: Types.ObjectId[];
 
-  defaultOrgId?: string;
+  defaultOrgId?: Types.ObjectId | null;
 
   githubAccessToken: string;
   githubRefreshToken?: string;
