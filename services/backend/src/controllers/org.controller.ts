@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { Types } from "mongoose";
 import { OrgModel } from "../models/org.model";
 import { UserModel } from "../models/user.model";  // adjust path if needed
 
@@ -21,10 +22,11 @@ export const createOrg = async (req: any, res: Response) => {
     }
 
     // 1) Create Org
+    const creatorId = new Types.ObjectId(String(userId));
     const org = await OrgModel.create({
       name,
       slug,
-      createdBy: userId,
+      createdBy: creatorId,
     });
 
     // 2) Update User: defaultOrgId + orgIds
@@ -36,10 +38,13 @@ export const createOrg = async (req: any, res: Response) => {
         .json({ success: false, error: { message: "User not found" } });
     }
 
-    // Add org to user's org list
-    const orgId = org._id.toString();
+    // Add org to user's org list (ObjectId-typed)
+    const orgId = org._id as Types.ObjectId;
 
-    if (!user.orgIds.includes(orgId)) {
+    const hasOrg = Array.isArray(user.orgIds)
+      ? user.orgIds.some((id) => String(id) === String(orgId))
+      : false;
+    if (!hasOrg) {
       user.orgIds.push(orgId);
     }
 
