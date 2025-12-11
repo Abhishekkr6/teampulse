@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import type { MouseEvent } from "react";
 import {
   AlertTriangle,
@@ -55,6 +55,10 @@ const LANGUAGE_DISPLAY_NAMES: Record<string, string> = {
 export default function ReposPage() {
   const [repos, setRepos] = useState<RepoSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+  const [repoFullName, setRepoFullName] = useState("");
+  const [connectError, setConnectError] = useState<string | null>(null);
+  const [connectSuccess, setConnectSuccess] = useState<string | null>(null);
 
   const activeOrgId = useUserStore((state) => state.activeOrgId);
   const userLoading = useUserStore((state) => state.loading);
@@ -146,6 +150,83 @@ export default function ReposPage() {
           <h1 className="text-4xl font-semibold text-slate-900">Repositories</h1>
           <p className="text-base text-slate-500">Team repositories and project health metrics</p>
         </header>
+
+        {!missingOrg && (
+          <Card className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <form
+              className="flex flex-col gap-3 sm:flex-row sm:items-center"
+              onSubmit={async (e: FormEvent) => {
+                e.preventDefault();
+                setConnectError(null);
+                setConnectSuccess(null);
+                if (!activeOrgId) {
+                  setConnectError("No organization selected");
+                  return;
+                }
+                const value = repoFullName.trim();
+                if (!/^[^\/\s]+\/[A-Za-z0-9_.-]+$/.test(value)) {
+                  setConnectError("Enter full name as owner/repo");
+                  return;
+                }
+                try {
+                  setConnecting(true);
+                  await api.post(`/orgs/${activeOrgId}/repos/connect`, { repoFullName: value });
+                  setConnectSuccess("Repository connected. Loading…");
+                  setRepoFullName("");
+                  // Refresh list
+                  try {
+                    const response = await api.get(`/orgs/${activeOrgId}/repos`);
+                    const rawData = response.data?.data;
+                    const payload: RepoApiRecord[] = Array.isArray(rawData)
+                      ? rawData
+                      : rawData && typeof rawData === "object"
+                      ? Object.values(rawData as Record<string, RepoApiRecord>)
+                      : [];
+                    const normalized = payload
+                      .map((item) => normalizeRepo(item))
+                      .filter((value): value is RepoSummary => value !== null);
+                    setRepos(normalized);
+                    localStorage.setItem(
+                      "teampulse:lastRepos",
+                      JSON.stringify({ orgId: activeOrgId, repos: normalized })
+                    );
+                  } catch {}
+                } catch (err: any) {
+                  const msg = err?.response?.data?.error || err?.message || "Failed to connect";
+                  setConnectError(String(msg));
+                } finally {
+                  setConnecting(false);
+                }
+              }}
+            >
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-700">Add repository</label>
+                <input
+                  type="text"
+                  value={repoFullName}
+                  onChange={(e) => setRepoFullName(e.target.value)}
+                  placeholder="owner/repo (e.g. vercel/next.js)"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+              <div className="sm:pt-6">
+                <button
+                  type="submit"
+                  disabled={connecting}
+                  className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-60"
+                >
+                  {connecting ? "Connecting…" : "Connect"}
+                </button>
+              </div>
+            </form>
+            {connectError && (
+              <p className="mt-2 text-sm text-rose-600">{connectError}</p>
+            )}
+            {connectSuccess && (
+              <p className="mt-2 text-sm text-emerald-600">{connectSuccess}</p>
+            )}
+          </Card>
+        )}
 
         {missingOrg ? (
           <Card className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600 shadow-none">
