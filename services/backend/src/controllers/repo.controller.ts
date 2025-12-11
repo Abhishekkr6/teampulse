@@ -10,13 +10,18 @@ export const getRepos = async (req: Request, res: Response) => {
   try {
     const orgIdParam = req.params.orgId;
     if (!orgIdParam || !Types.ObjectId.isValid(orgIdParam)) {
-      return res.status(400).json({ success: false, error: { message: "Invalid organization identifier" } });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error: { message: "Invalid organization identifier" },
+        });
     }
 
     const orgObjectId = new Types.ObjectId(orgIdParam);
 
     const rawRepos = await RepoModel.find({
-      $or: [{ orgId: orgObjectId }, { orgId: orgIdParam }],
+      orgId: orgObjectId,
     }).lean();
 
     if (!rawRepos.length) {
@@ -106,7 +111,9 @@ export const getRepos = async (req: Request, res: Response) => {
     const commitMap = new Map(
       commitAgg.map((entry: any) => [String(entry._id), entry])
     );
-    const prMap = new Map(prAgg.map((entry: any) => [String(entry._id), entry]));
+    const prMap = new Map(
+      prAgg.map((entry: any) => [String(entry._id), entry])
+    );
     const alertMap = new Map(
       alertsAgg.map((entry: any) => [String(entry._id), entry])
     );
@@ -177,19 +184,28 @@ export const getRepoDetail = async (req: Request, res: Response) => {
     const { orgId, repoId } = req.params;
 
     if (!repoId || !Types.ObjectId.isValid(repoId)) {
-      return res.status(400).json({ success: false, error: "Invalid repository identifier" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid repository identifier" });
     }
 
     if (!orgId || !Types.ObjectId.isValid(orgId)) {
-      return res.status(400).json({ success: false, error: "Invalid organization identifier" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid organization identifier" });
     }
 
     const repoObjectId = new Types.ObjectId(repoId);
     const orgObjectId = new Types.ObjectId(orgId);
 
-    const repoDoc = await RepoModel.findOne({ _id: repoObjectId, orgId: orgObjectId }).lean();
+    const repoDoc = await RepoModel.findOne({
+      _id: repoObjectId,
+      orgId: orgObjectId,
+    }).lean();
     if (!repoDoc) {
-      return res.status(404).json({ success: false, error: "Repository not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "Repository not found" });
     }
 
     const now = new Date();
@@ -199,7 +215,10 @@ export const getRepoDetail = async (req: Request, res: Response) => {
     const prev14 = new Date(now);
     prev14.setDate(prev14.getDate() - 14);
 
-    const computeChange = (current: number | null | undefined, previous: number | null | undefined) => {
+    const computeChange = (
+      current: number | null | undefined,
+      previous: number | null | undefined
+    ) => {
       const currentValue = typeof current === "number" ? current : 0;
       const previousValue = typeof previous === "number" ? previous : 0;
 
@@ -211,7 +230,9 @@ export const getRepoDetail = async (req: Request, res: Response) => {
         return currentValue > 0 ? 100 : 0;
       }
 
-      return Number((((currentValue - previousValue) / previousValue) * 100).toFixed(1));
+      return Number(
+        (((currentValue - previousValue) / previousValue) * 100).toFixed(1)
+      );
     };
 
     const [
@@ -233,18 +254,27 @@ export const getRepoDetail = async (req: Request, res: Response) => {
       highRiskOpenPRs,
     ] = await Promise.all([
       CommitModel.countDocuments({ repoId: repoObjectId }),
-      CommitModel.countDocuments({ repoId: repoObjectId, timestamp: { $gte: last7 } }),
+      CommitModel.countDocuments({
+        repoId: repoObjectId,
+        timestamp: { $gte: last7 },
+      }),
       CommitModel.countDocuments({
         repoId: repoObjectId,
         timestamp: { $gte: prev14, $lt: last7 },
       }),
       PRModel.countDocuments({ repoId: repoObjectId, state: "open" }),
-      PRModel.countDocuments({ repoId: repoObjectId, createdAt: { $gte: last7 } }),
+      PRModel.countDocuments({
+        repoId: repoObjectId,
+        createdAt: { $gte: last7 },
+      }),
       PRModel.countDocuments({
         repoId: repoObjectId,
         createdAt: { $gte: prev14, $lt: last7 },
       }),
-      CommitModel.distinct("authorGithubId", { repoId: repoObjectId, authorGithubId: { $ne: null } }),
+      CommitModel.distinct("authorGithubId", {
+        repoId: repoObjectId,
+        authorGithubId: { $ne: null },
+      }),
       CommitModel.distinct("authorGithubId", {
         repoId: repoObjectId,
         authorGithubId: { $ne: null },
@@ -318,7 +348,9 @@ export const getRepoDetail = async (req: Request, res: Response) => {
       PRModel.find({ repoId: repoObjectId })
         .sort({ updatedAt: -1 })
         .limit(15)
-        .select("title number state authorGithubId reviewers updatedAt createdAt mergedAt closedAt riskScore")
+        .select(
+          "title number state authorGithubId reviewers updatedAt createdAt mergedAt closedAt riskScore"
+        )
         .lean(),
       AlertModel.aggregate([
         {
@@ -332,7 +364,11 @@ export const getRepoDetail = async (req: Request, res: Response) => {
             total: { $sum: 1 },
             open: {
               $sum: {
-                $cond: [{ $eq: [{ $ifNull: ["$resolvedAt", null] }, null] }, 1, 0],
+                $cond: [
+                  { $eq: [{ $ifNull: ["$resolvedAt", null] }, null] },
+                  1,
+                  0,
+                ],
               },
             },
             criticalOpen: {
@@ -364,12 +400,14 @@ export const getRepoDetail = async (req: Request, res: Response) => {
       }),
     ]);
 
-    const churnCurrentTotals = Array.isArray(churnCurrentAgg) && churnCurrentAgg[0]
-      ? churnCurrentAgg[0]
-      : { additions: 0, deletions: 0 };
-    const churnPrevTotals = Array.isArray(churnPrevAgg) && churnPrevAgg[0]
-      ? churnPrevAgg[0]
-      : { additions: 0, deletions: 0 };
+    const churnCurrentTotals =
+      Array.isArray(churnCurrentAgg) && churnCurrentAgg[0]
+        ? churnCurrentAgg[0]
+        : { additions: 0, deletions: 0 };
+    const churnPrevTotals =
+      Array.isArray(churnPrevAgg) && churnPrevAgg[0]
+        ? churnPrevAgg[0]
+        : { additions: 0, deletions: 0 };
 
     const churnRateCurrent = (() => {
       const additions = Number(churnCurrentTotals.additions ?? 0);
@@ -426,7 +464,9 @@ export const getRepoDetail = async (req: Request, res: Response) => {
           .lean()
       : [];
 
-    const userMap = new Map(users.map((user: any) => [String(user.githubId), user]));
+    const userMap = new Map(
+      users.map((user: any) => [String(user.githubId), user])
+    );
 
     const topContributors = topCommitters.map((entry: any) => {
       const githubId = entry?._id ? String(entry._id) : undefined;
@@ -442,22 +482,25 @@ export const getRepoDetail = async (req: Request, res: Response) => {
       };
     });
 
-    const alertsSummary = Array.isArray(alertAgg) && alertAgg[0]
-      ? {
-          total: alertAgg[0].total ?? 0,
-          open: alertAgg[0].open ?? 0,
-          criticalOpen: alertAgg[0].criticalOpen ?? 0,
-        }
-      : { total: 0, open: 0, criticalOpen: 0 };
+    const alertsSummary =
+      Array.isArray(alertAgg) && alertAgg[0]
+        ? {
+            total: alertAgg[0].total ?? 0,
+            open: alertAgg[0].open ?? 0,
+            criticalOpen: alertAgg[0].criticalOpen ?? 0,
+          }
+        : { total: 0, open: 0, criticalOpen: 0 };
 
     const health = (() => {
-      if (alertsSummary.criticalOpen > 0 || highRiskOpenPRs > 3) return "warning" as const;
+      if (alertsSummary.criticalOpen > 0 || highRiskOpenPRs > 3)
+        return "warning" as const;
       if (openPRs > 10 || alertsSummary.open > 5) return "attention" as const;
       return "healthy" as const;
     })();
 
     const resolveLanguage = () => {
-      if (typeof (repoDoc as any)?.language === "string") return (repoDoc as any).language;
+      if (typeof (repoDoc as any)?.language === "string")
+        return (repoDoc as any).language;
       if (typeof (repoDoc as any)?.metadata?.primaryLanguage === "string") {
         return (repoDoc as any).metadata.primaryLanguage;
       }
@@ -494,7 +537,9 @@ export const getRepoDetail = async (req: Request, res: Response) => {
     };
 
     const pullRequests = recentPRDocs.map((pr: any) => {
-      const githubId = pr?.authorGithubId ? String(pr.authorGithubId) : undefined;
+      const githubId = pr?.authorGithubId
+        ? String(pr.authorGithubId)
+        : undefined;
       const user = githubId ? userMap.get(githubId) : null;
 
       return {
@@ -503,7 +548,10 @@ export const getRepoDetail = async (req: Request, res: Response) => {
         title: pr?.title || "Pull request",
         authorName: user?.name || user?.login || githubId || "Unknown",
         authorId: githubId,
-        risk: typeof pr?.riskScore === "number" ? Number((pr.riskScore * 100).toFixed(0)) : 0,
+        risk:
+          typeof pr?.riskScore === "number"
+            ? Number((pr.riskScore * 100).toFixed(0))
+            : 0,
         state: pr?.state || "open",
         reviewers: Array.isArray(pr?.reviewers) ? pr.reviewers.length : 0,
         updatedAt: pr?.updatedAt || pr?.createdAt || null,
@@ -530,6 +578,8 @@ export const getRepoDetail = async (req: Request, res: Response) => {
       },
     });
   } catch (err) {
-    return res.status(500).json({ success: false, error: "Failed to load repository" });
+    return res
+      .status(500)
+      .json({ success: false, error: "Failed to load repository" });
   }
 };
