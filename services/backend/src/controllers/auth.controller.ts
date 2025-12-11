@@ -100,11 +100,12 @@ export const githubCallback = async (req: Request, res: Response) => {
     // Create application JWT (payload minimal: user id)
     const token = createToken({ id: user._id });
 
-    // Set secure httpOnly cookie as per spec
+    // Set httpOnly cookie; secure in production, lax in dev for localhost
+    const isProd = String(process.env.NODE_ENV).toLowerCase() === "production";
     res.cookie("teampulse_token", token, {
       httpOnly: true,
-      secure: true,
-      sameSite: "lax",
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
       path: "/",
     });
@@ -180,8 +181,9 @@ export const logoutAndDelete = async (req: any, res: Response) => {
 
     await UserModel.deleteOne({ _id: userId });
 
-    // Clear session cookie on logout
-    res.clearCookie("teampulse_token", { path: "/", secure: true, sameSite: "lax" });
+    // Clear session cookie on logout (respect SameSite for cross-site)
+    const isProdLogout = String(process.env.NODE_ENV).toLowerCase() === "production";
+    res.clearCookie("teampulse_token", { path: "/", secure: isProdLogout, sameSite: isProdLogout ? "none" : "lax" });
 
     return res.json({ success: true });
   } catch (error) {
