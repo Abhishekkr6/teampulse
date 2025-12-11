@@ -149,7 +149,10 @@ export default function Topbar() {
             </button>
 
             {user ? (
-              <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm">
+              <Link
+                href="/me"
+                className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm transition hover:border-indigo-500 hover:bg-indigo-50"
+              >
                 <Image
                   src={user.avatarUrl}
                   alt={`${user.name}'s avatar`}
@@ -161,8 +164,7 @@ export default function Topbar() {
                   <p className="text-sm font-semibold text-slate-900">{user.name}</p>
                   {user.email && <p className="text-xs text-slate-500">{user.email}</p>}
                 </div>
-                {/* Logout removed per request */}
-              </div>
+              </Link>
             ) : (
               <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm">
                 <div className="h-8 w-8 rounded-full bg-slate-200 animate-pulse" />
@@ -185,13 +187,15 @@ export default function Topbar() {
             </button>
 
             {user ? (
-              <Image
-                src={user.avatarUrl}
-                alt={`${user.name}'s avatar`}
-                width={32}
-                height={32}
-                className="h-9 w-9 rounded-full border border-slate-200"
-              />
+              <Link href="/me" className="inline-flex rounded-full">
+                <Image
+                  src={user.avatarUrl}
+                  alt={`${user.name}'s avatar`}
+                  width={32}
+                  height={32}
+                  className="h-9 w-9 rounded-full border border-slate-200"
+                />
+              </Link>
             ) : (
               <div className="h-9 w-9 rounded-full bg-slate-200 animate-pulse" />
             )}
