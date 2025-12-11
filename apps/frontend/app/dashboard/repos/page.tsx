@@ -104,10 +104,6 @@ export default function ReposPage() {
 
         if (!cancelled) {
           setRepos(normalized);
-          localStorage.setItem(
-            "teampulse:lastRepos",
-            JSON.stringify({ orgId: activeOrgId, repos: normalized })
-          );
         }
       } catch (error) {
         console.warn("Failed to load repos", error);
@@ -121,20 +117,7 @@ export default function ReposPage() {
       }
     };
 
-    try {
-      const cached = localStorage.getItem("teampulse:lastRepos");
-      if (cached) {
-        const parsed = JSON.parse(cached) as { orgId?: string; repos?: RepoApiRecord[] };
-        if (parsed?.orgId === activeOrgId && Array.isArray(parsed?.repos)) {
-          const normalized = parsed.repos
-            .map((item) => normalizeRepo(item))
-            .filter((value): value is RepoSummary => value !== null);
-          setRepos(normalized);
-        }
-      }
-    } catch (error) {
-      console.warn("Failed to read cached repos", error);
-    }
+    // No client-side cache; always fetch fresh repos
 
     loadRepos();
 
@@ -186,13 +169,17 @@ export default function ReposPage() {
                       .map((item) => normalizeRepo(item))
                       .filter((value): value is RepoSummary => value !== null);
                     setRepos(normalized);
-                    localStorage.setItem(
-                      "teampulse:lastRepos",
-                      JSON.stringify({ orgId: activeOrgId, repos: normalized })
-                    );
                   } catch {}
-                } catch (err: any) {
-                  const msg = err?.response?.data?.error || err?.message || "Failed to connect";
+                } catch (err: unknown) {
+                  let msg = "Failed to connect";
+                  if (typeof err === "object" && err !== null) {
+                    const maybeAxios = err as { response?: { data?: { error?: unknown } }; message?: unknown };
+                    if (typeof maybeAxios.response?.data?.error === "string") {
+                      msg = maybeAxios.response.data.error;
+                    } else if (typeof maybeAxios.message === "string") {
+                      msg = maybeAxios.message;
+                    }
+                  }
                   setConnectError(String(msg));
                 } finally {
                   setConnecting(false);

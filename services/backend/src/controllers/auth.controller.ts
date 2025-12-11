@@ -32,6 +32,7 @@ export const githubCallback = async (req: Request, res: Response) => {
     const ghUser = await getGithubUser(accessToken);
     const email = await getGithubEmail(accessToken);
 
+    // Identify and upsert user strictly by githubId
     let user = await UserModel.findOne({ githubId: ghUser.id });
 
     if (!user) {
@@ -53,7 +54,7 @@ export const githubCallback = async (req: Request, res: Response) => {
       await user.save();
     }
 
-    // ⭐ Auto-create default org if missing, handle slug conflicts gracefully
+    // Ensure default org exists and assign defaultOrgId/orgIds
     if (!user.defaultOrgId) {
       const baseSlug = ghUser.login?.toLowerCase() || `user-${String(user._id)}`;
       let org = await OrgModel.findOne({ slug: baseSlug });
@@ -96,29 +97,25 @@ export const githubCallback = async (req: Request, res: Response) => {
       await user.save();
     }
 
-    // ⭐ JWT MUST include defaultOrgId
-    const token = createToken({
-      id: user._id,
-      defaultOrgId: user.defaultOrgId,
-    });
+    // Create application JWT (payload minimal: user id)
+    const token = createToken({ id: user._id });
 
-    // Set httpOnly cookie with JWT; avoid storing in localStorage
-    const isProd = String(process.env.NODE_ENV).toLowerCase() === "production";
-    res.cookie("token", token, {
+    // Set secure httpOnly cookie as per spec
+    res.cookie("teampulse_token", token, {
       httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? "none" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: true,
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
       path: "/",
     });
 
-    // Redirect with token for frontend to set first-party cookie
+    // Redirect to frontend without leaking token in URL
     if (!process.env.FRONTEND_URL) {
       logger.warn("FRONTEND_URL is not set; responding with JSON");
-      return res.json({ success: true, token });
+      return res.json({ success: true });
     }
     const frontend = process.env.FRONTEND_URL.replace(/\/$/, "");
-    return res.redirect(`${frontend}/dashboard?token=${encodeURIComponent(token)}`);
+    return res.redirect(`${frontend}/dashboard`);
   } catch (err) {
     logger.error({ err }, "GitHub OAuth callback failed");
     const message = (err as any)?.message || "OAuth callback failed";
@@ -183,8 +180,8 @@ export const logoutAndDelete = async (req: any, res: Response) => {
 
     await UserModel.deleteOne({ _id: userId });
 
-    const isProd = String(process.env.NODE_ENV).toLowerCase() === "production";
-    res.clearCookie("token", { path: "/", secure: isProd, sameSite: isProd ? "none" : "lax" });
+    // Clear session cookie on logout
+    res.clearCookie("teampulse_token", { path: "/", secure: true, sameSite: "lax" });
 
     return res.json({ success: true });
   } catch (error) {

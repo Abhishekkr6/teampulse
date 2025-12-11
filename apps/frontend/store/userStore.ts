@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { api, setToken, getToken } from "../lib/api";
+import { api } from "../lib/api";
 import { useLiveStore } from "./liveStore";
 
 interface User {
@@ -95,49 +95,27 @@ export const useUserStore = create<UserState>((set) => ({
   loading: true,
   activeOrgId: null,
 
-  // Capture ?token= from OAuth redirect, store in localStorage, and clean URL
-  initFromUrl: () => {
-    try {
-      if (typeof window === "undefined") return;
-      const url = new URL(window.location.href);
-      const tokenParam = url.searchParams.get("token");
-      if (tokenParam) {
-        setToken(tokenParam);
-        url.searchParams.delete("token");
-        window.history.replaceState({}, "", url.toString());
-      }
-    } catch {}
-  },
+  // No token management on client; cookie is set by backend
+  initFromUrl: () => {},
 
   fetchUser: async () => {
     try {
       // client only
       if (typeof window === "undefined") return;
-      // ensure we initialize token from URL once
-      useUserStore.getState().initFromUrl();
-      const token = getToken();
-      if (!token) {
-        set({ user: null, loading: false });
-        return;
-      }
-
       const res = await api.get("/me");
-      const raw = res.data.data;
+      const payload = res.data?.data;
+      const rawUser = payload?.user ?? null;
 
-      const user = raw ?? null; // `/me` returns the user object directly
-      const defaultOrgId = normaliseOrgId(raw?.defaultOrgId);
-      const orgIdsRaw = raw?.orgIds ?? [];
+      const user = rawUser;
+      const defaultOrgId = normaliseOrgId(rawUser?.defaultOrgId);
+      const orgIdsRaw = rawUser?.orgIds ?? [];
 
       const fallbackOrgId = extractPreferredOrgId(orgIdsRaw);
       const resolvedOrgId = orgIdExistsInList(orgIdsRaw, defaultOrgId)
         ? defaultOrgId
         : fallbackOrgId;
 
-      set({
-        user,
-        loading: false,
-        activeOrgId: resolvedOrgId,
-      });
+      set({ user, loading: false, activeOrgId: resolvedOrgId });
     } catch (error) {
       console.warn("Failed to fetch user", error);
       set({
@@ -157,9 +135,12 @@ export const useUserStore = create<UserState>((set) => ({
     }
   },
 
-  // Logout removed per request; keep no-op to avoid runtime errors
+  // Logout clears cookie server-side and resets store
   logout: async () => {
-    set({ user: useUserStore.getState().user, loading: false });
+    try {
+      await api.delete("/auth/logout");
+    } catch {}
+    set({ user: null, loading: false, activeOrgId: null });
     return Promise.resolve();
   },
 }));

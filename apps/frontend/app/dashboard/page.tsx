@@ -59,18 +59,6 @@ export default function DashboardPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        router.replace("/");
-        setStats(null);
-        setTimeline([]);
-        setRiskBuckets([]);
-        setPrStatusCounts(emptyStatus);
-        setMissingOrg(false);
-        setLoading(false);
-        return;
-      }
-
       if (!activeOrgId) {
         setMissingOrg(true);
         setStats(null);
