@@ -66,6 +66,11 @@ export default function ReposPage() {
     }
 
     if (!activeOrgId) {
+      // Try to re-bootstrap user/org if not available yet
+      try {
+        const { fetchUser } = useUserStore.getState();
+        fetchUser();
+      } catch {}
       setRepos([]);
       setLoading(false);
       return;
