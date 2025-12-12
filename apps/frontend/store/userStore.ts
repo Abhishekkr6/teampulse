@@ -100,29 +100,41 @@ export const useUserStore = create<UserState>((set) => ({
 
   fetchUser: async () => {
     try {
-      // client only
       if (typeof window === "undefined") return;
+
       const res = await api.get("/me");
       const payload = res.data?.data;
       const rawUser = payload?.user ?? null;
 
-      const user = rawUser;
       const defaultOrgId = normaliseOrgId(rawUser?.defaultOrgId);
-      const orgIdsRaw = rawUser?.orgIds ?? [];
 
-      const fallbackOrgId = extractPreferredOrgId(orgIdsRaw);
-      const resolvedOrgId = orgIdExistsInList(orgIdsRaw, defaultOrgId)
-        ? defaultOrgId
-        : fallbackOrgId;
-
-      set({ user, loading: false, activeOrgId: resolvedOrgId });
-    } catch (error) {
-      console.warn("Failed to fetch user", error);
       set({
-        user: null,
+        user: rawUser,
         loading: false,
-        activeOrgId: null,
+        activeOrgId: defaultOrgId,
       });
+    } catch (err: unknown) {
+      const status =
+        typeof err === "object" && err !== null && "response" in err
+          ? (err as { response?: { status?: number } }).response?.status
+          : undefined;
+
+      if (status === 401 || status === 404) {
+        // stale or invalid cookie
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          document.cookie = "teampulse_token=; Max-Age=0; path=/;";
+          document.cookie = "token=; Max-Age=0; path=/;";
+        } catch {}
+
+        set({ user: null, loading: false, activeOrgId: null });
+        window.location.replace("/");
+        return;
+      }
+
+      console.warn("Failed to fetch user", err);
+      set({ user: null, loading: false, activeOrgId: null });
     }
   },
 
