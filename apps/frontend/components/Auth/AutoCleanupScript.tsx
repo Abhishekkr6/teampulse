@@ -1,16 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { clearAllClientState, detectStaleSession } from "./autoCleanup";
 
 export default function AutoCleanup() {
-  useEffect(() => {
-    if (detectStaleSession()) {
-      clearAllClientState();
-      sessionStorage.setItem("tp:active", "1");
+  const ran = useRef(false);
 
-      // redirect to callback for fresh login
-      window.location.replace("/auth/callback");
+  useEffect(() => {
+    // Run only once: stale LOCAL state cleanup
+    if (!ran.current) {
+      ran.current = true;
+
+      // ONLY clear if local/session data is stale
+      if (detectStaleSession()) {
+        clearAllClientState();
+        sessionStorage.setItem("tp:active", "1");
+      }
     }
   }, []);
 

@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import { api } from "../lib/api";
 import { useLiveStore } from "./liveStore";
+import { clearAllClientState, } from "../components/Auth/autoCleanup";
+import type { AxiosError } from "axios";
 
 interface User {
   id?: string;
@@ -99,44 +101,40 @@ export const useUserStore = create<UserState>((set) => ({
   initFromUrl: () => {},
 
   fetchUser: async () => {
-    try {
-      if (typeof window === "undefined") return;
+  try {
+    const res = await api.get("/me");
+    const rawUser = res.data?.data?.user ?? null;
 
-      const res = await api.get("/me");
-      const payload = res.data?.data;
-      const rawUser = payload?.user ?? null;
-
-      const defaultOrgId = normaliseOrgId(rawUser?.defaultOrgId);
-
-      set({
-        user: rawUser,
-        loading: false,
-        activeOrgId: defaultOrgId,
-      });
-    } catch (err: unknown) {
-      const status =
-        typeof err === "object" && err !== null && "response" in err
-          ? (err as { response?: { status?: number } }).response?.status
-          : undefined;
-
-      if (status === 401 || status === 404) {
-        // stale or invalid cookie
-        try {
-          localStorage.clear();
-          sessionStorage.clear();
-          document.cookie = "teampulse_token=; Max-Age=0; path=/;";
-          document.cookie = "token=; Max-Age=0; path=/;";
-        } catch {}
-
-        set({ user: null, loading: false, activeOrgId: null });
-        window.location.replace("/");
-        return;
-      }
-
-      console.warn("Failed to fetch user", err);
-      set({ user: null, loading: false, activeOrgId: null });
+    if (!rawUser) {
+      throw new Error("Invalid user response");
     }
-  },
+
+    const defaultOrgId = normaliseOrgId(rawUser.defaultOrgId);
+
+    set({
+      user: rawUser,
+      loading: false,
+      activeOrgId: defaultOrgId,
+    });
+  } catch (err: unknown) {
+    const status = (err as AxiosError | undefined)?.response?.status;
+
+    // ONLY consider stale when /me fails
+    if (status === 401 || status === 404) {
+      // stale cookie or deleted user
+      clearAllClientState();
+
+      set({ user: null, loading: false, activeOrgId: null });
+      return;
+    }
+
+    set({
+      user: null,
+      loading: false,
+      activeOrgId: null,
+    });
+  }
+},
 
   setActiveOrgId: (orgId, options) => {
     const normalised = normaliseOrgId(orgId);
