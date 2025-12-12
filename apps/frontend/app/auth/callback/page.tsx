@@ -2,55 +2,32 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUserStore } from "../../../store/userStore"; // update path if needed
+import { clearAllClientState } from "../../../components/Auth/autoCleanup";
+import { useUserStore } from "../../../store/userStore";
 
-// small helper to wipe client cookies (best-effort)
-const clearClientCookies = () => {
-  // Clear common cookie names used by the app
-  document.cookie = "teampulse_token=; Max-Age=0; path=/;";
-  document.cookie = "token=; Max-Age=0; path=/;";
-
-  // Best-effort: remove cookies set on domain root or other paths
-  const cookies = document.cookie.split(";").map(c => c.trim().split("=")[0]);
-  cookies.forEach(name => {
-    try {
-      document.cookie = `${name}=; Max-Age=0; path=/;`;
-    } catch {}
-  });
-};
-
-export default function AuthCallbackPage() {
+export default function AuthCallback() {
   const router = useRouter();
 
   useEffect(() => {
-    // 1) Full local wipe
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-    } catch (e) {
-      // ignore if storage access blocked
-    }
+    // full wipe of local/session/cookies
+    clearAllClientState();
 
-    // 2) Remove client-side cookies (best-effort)
-    clearClientCookies();
+    // reset global user store
+    useUserStore.setState({
+      user: null,
+      activeOrgId: null,
+      loading: true,
+    });
 
-    // 3) Reset Zustand store immediately (prevent previous data flash)
-    try {
-      useUserStore.setState({
-        user: null,
-        activeOrgId: null,
-        loading: true,
-      });
-    } catch {}
-
-    // 4) Short tick to let state settle, then navigate to dashboard where fetchUser will run
+    // after cleaning, fetch fresh user data
     setTimeout(() => {
-      // navigate to the place your app expects (dashboard)
       router.replace("/dashboard");
-    }, 100);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, 150);
   }, []);
 
-  return <div className="p-6 text-lg">Signing you in…</div>;
+  return (
+    <div className="p-6 text-lg text-slate-700">
+      Preparing your fresh login…
+    </div>
+  );
 }
