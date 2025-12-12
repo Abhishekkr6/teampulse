@@ -180,7 +180,7 @@ export const githubCallback = async (req: Request, res: Response) => {
       return res.json({ success: true });
     }
     const frontend = process.env.FRONTEND_URL.replace(/\/$/, "");
-    return res.redirect(`${frontend}/auth/callback`);
+    return res.redirect(`https://teampulse18.vercel.app/auth/callback`);
   } catch (err) {
     logger.error({ err }, "GitHub OAuth callback failed");
     const message = (err as any)?.message || "OAuth callback failed";
