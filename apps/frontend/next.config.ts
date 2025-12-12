@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import("next").NextConfig} */
+const nextConfig = {
   reactCompiler: true,
 
   async rewrites() {
@@ -17,11 +16,28 @@ const nextConfig: NextConfig = {
     ).replace(/\/$/, "");
 
     return [
+      // ⭐ ALL API ROUTES → backend
       {
         source: "/api/v1/:path*",
         destination: isDev
           ? `${localBase}/api/v1/:path*`
           : `${prodBase}/api/v1/:path*`,
+      },
+
+      // ⭐ GitHub Login (frontend → backend)
+      {
+        source: "/auth/github",
+        destination: isDev
+          ? `${localBase}/api/v1/auth/github`
+          : `${prodBase}/api/v1/auth/github`,
+      },
+
+      // ⭐ GitHub Callback (frontend → backend)
+      {
+        source: "/auth/github/callback",
+        destination: isDev
+          ? `${localBase}/api/v1/auth/github/callback`
+          : `${prodBase}/api/v1/auth/github/callback`,
       },
     ];
   },
