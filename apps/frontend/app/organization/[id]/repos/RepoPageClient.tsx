@@ -15,8 +15,18 @@ export default function RepoPageClient({ orgId }: { orgId?: string }) {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const activeOrgId = useUserStore((state) => state.activeOrgId);
+  const userLoading = useUserStore((state) => state.loading);
+  const fetchUser = useUserStore((state) => state.fetchUser);
+
   // ⭐ NEVER use localStorage for orgId
-    const currentOrgId = orgId;
+  const currentOrgId = orgId ?? activeOrgId ?? null;
+
+  useEffect(() => {
+    if (currentOrgId || userLoading || !fetchUser) return;
+
+    fetchUser({ silent: true }).catch(() => {});
+  }, [currentOrgId, userLoading, fetchUser]);
 
   const fetchRepos = useCallback(async () => {
     if (!currentOrgId) return;
