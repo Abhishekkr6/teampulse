@@ -8,11 +8,10 @@ import { useUserStore } from "../store/userStore";
 
 export default function HomePage() {
   const router = useRouter();
-  const setActiveOrgId = useUserStore((state) => state.setActiveOrgId);
 
   useEffect(() => {
     // No client storage for auth/org id; backend sets cookie and dashboard will fetch user/org
-  }, [router, setActiveOrgId]);
+  }, [router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-12">
