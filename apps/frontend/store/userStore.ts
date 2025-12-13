@@ -63,11 +63,47 @@ export const useUserStore = create<UserState>((set, get) => ({
       if (get().loading === false && opts?.silent) return;
 
       const res = await api.get("/me");
-      const rawUser = res.data?.data?.user ?? null;
+      const payload = res.data?.data ?? {};
+      const rawUser = payload.user ?? null;
+
+      const defaultOrgCandidate =
+        payload.defaultOrgId ??
+        rawUser?.defaultOrgId ??
+        null;
+
+      const orgIdsRaw: unknown[] = Array.isArray(payload.orgIds)
+        ? (payload.orgIds as unknown[])
+        : Array.isArray(rawUser?.orgIds)
+        ? (rawUser.orgIds as unknown[])
+        : [];
+
+      const normalisedOrgIds = orgIdsRaw
+        .map((value) => normaliseOrgId(value))
+        .filter((value): value is string => Boolean(value));
+
+      const normalisedDefault = normaliseOrgId(defaultOrgCandidate);
+      const existingActive = get().activeOrgId;
+      const activeFromExisting =
+        existingActive && normalisedOrgIds.includes(existingActive)
+          ? existingActive
+          : null;
+
+      // keep previous selection when it still exists, then fall back to defaults
+      const derivedActiveOrgId =
+        activeFromExisting ??
+        normalisedDefault ??
+        normalisedOrgIds[0] ??
+        null;
 
       set({
-        user: rawUser,
-        activeOrgId: normaliseOrgId(rawUser?.defaultOrgId),
+        user: rawUser
+          ? {
+              ...rawUser,
+              orgIds: normalisedOrgIds,
+              defaultOrgId: normalisedDefault,
+            }
+          : null,
+        activeOrgId: derivedActiveOrgId,
         loading: false,
       });
     } catch (err) {
