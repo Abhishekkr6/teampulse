@@ -41,7 +41,10 @@ const resolveBaseURL = (): string => {
   return DEFAULT_LOCAL_BASE;
 };
 
-export const api = axios.create({ withCredentials: true });
+export const api = axios.create({
+  baseURL: "/api/v1", 
+  withCredentials: true 
+});
 
 // Remove localStorage token usage; rely on httpOnly cookie only
 
