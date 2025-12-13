@@ -19,12 +19,14 @@ export default function HomePage() {
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white">
           TP
         </div>
-        <h1 className="mt-4 text-2xl font-semibold text-slate-900">Welcome to TeamPulse</h1>
+        <h1 className="mt-4 text-2xl font-semibold text-slate-900">
+          Welcome to TeamPulse
+        </h1>
         <p className="mt-2 text-sm text-slate-500">
           Authenticate with GitHub to explore real-time engineering insights.
         </p>
         <a
-          href={`${getBackendBase()}/auth/github/login`}
+          href="/auth/github"
           className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
         >
           Login with GitHub
