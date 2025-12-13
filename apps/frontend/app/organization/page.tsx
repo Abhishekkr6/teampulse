@@ -10,7 +10,7 @@ export default function CreateOrgPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const router = useRouter();
-  const setActiveOrgId = useUserStore((state) => state.setActiveOrgId);
+  const setActiveOrgId = (id: string) => useUserStore.setState({ activeOrgId: id });
 
   const createOrg = async () => {
     const res = await api.post("/orgs", { name, slug });
@@ -21,7 +21,7 @@ export default function CreateOrgPage() {
       throw new Error("Organization payload missing identifiers");
     }
 
-    setActiveOrgId(activeOrgId.toString(), { refetch: true });
+    setActiveOrgId(activeOrgId.toString());
     router.push(`/organization/${org._id}/repos`);
   };
 
@@ -66,6 +66,7 @@ export default function CreateOrgPage() {
             </div>
 
             <button
+              type="button"
               onClick={createOrg}
               disabled={disabled}
               className="w-full rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
