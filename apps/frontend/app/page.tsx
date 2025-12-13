@@ -26,7 +26,7 @@ export default function HomePage() {
           Authenticate with GitHub to explore real-time engineering insights.
         </p>
         <a
-          href="/auth/github"
+          href="/auth/github/login"
           className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
         >
           Login with GitHub

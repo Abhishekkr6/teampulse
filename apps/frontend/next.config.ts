@@ -6,17 +6,18 @@ const nextConfig = {
     const isDev = process.env.NODE_ENV !== "production";
 
     const localBase = (
-      process.env.NEXT_PUBLIC_LOCAL_BACKEND_URL || "http://localhost:4000"
+      process.env.NEXT_PUBLIC_LOCAL_BACKEND_URL ||
+      "http://localhost:4000"
     ).replace(/\/$/, "");
 
-    // NOTE: prodBase MUST NOT contain a trailing /api/v1
+    // IMPORTANT: no /api/v1 here
     const prodBase = (
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       "https://teampulse-production.up.railway.app"
     ).replace(/\/$/, "");
 
     return [
-      // proxy all api calls to backend
+      // ✅ All API calls
       {
         source: "/api/v1/:path*",
         destination: isDev
@@ -24,15 +25,15 @@ const nextConfig = {
           : `${prodBase}/api/v1/:path*`,
       },
 
-      // GitHub login entrypoint (frontend -> proxy -> backend)
+      // ✅ GitHub LOGIN (FIXED)
       {
-        source: "/auth/github",
+        source: "/auth/github/login",
         destination: isDev
-          ? `${localBase}/api/v1/auth/github`
-          : `${prodBase}/api/v1/auth/github`,
+          ? `${localBase}/api/v1/auth/github/login`
+          : `${prodBase}/api/v1/auth/github/login`,
       },
 
-      // GitHub callback (frontend -> proxy -> backend)
+      // ✅ GitHub CALLBACK (already correct)
       {
         source: "/auth/github/callback",
         destination: isDev
