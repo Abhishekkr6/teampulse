@@ -19,7 +19,19 @@ import { AlertModel } from "../models/alert.model";
  */
 export const githubLogin = async (req: Request, res: Response) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
-  const redirect = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=user:email`;
+
+  const frontend = (
+    process.env.FRONTEND_URL || "https://teampulse18.vercel.app"
+  ).replace(/\/$/, "");
+
+  const redirectUri = `${frontend}/auth/github/callback`;
+
+  const redirect =
+    `https://github.com/login/oauth/authorize` +
+    `?client_id=${clientId}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&scope=user:email`;
+
   return res.redirect(redirect);
 };
 
@@ -132,7 +144,9 @@ export const githubCallback = async (req: Request, res: Response) => {
       const already = (user.orgIds as any[]).some(
         (entry) =>
           String(entry) === String(orgId) ||
-          (entry && typeof entry === "object" && String(entry._id) === String(orgId))
+          (entry &&
+            typeof entry === "object" &&
+            String(entry._id) === String(orgId))
       );
       if (!already) user.orgIds.push(orgId as any);
       await user.save();
@@ -206,9 +220,14 @@ export const logoutAndDelete = async (req: any, res: Response) => {
 
     if (!user) {
       // ensure cookies cleared even if user not found
-      const isProdLogout = String(process.env.NODE_ENV).toLowerCase() === "production";
+      const isProdLogout =
+        String(process.env.NODE_ENV).toLowerCase() === "production";
       const sameSite = isProdLogout ? "none" : "lax";
-      res.clearCookie("teampulse_token", { path: "/", secure: isProdLogout, sameSite });
+      res.clearCookie("teampulse_token", {
+        path: "/",
+        secure: isProdLogout,
+        sameSite,
+      });
       res.clearCookie("token", { path: "/", secure: isProdLogout, sameSite });
       return res.json({ success: true });
     }
@@ -262,9 +281,14 @@ export const logoutAndDelete = async (req: any, res: Response) => {
     await UserModel.deleteOne({ _id: userId });
 
     // Clear session cookies on logout (respect SameSite for cross-site)
-    const isProdLogout = String(process.env.NODE_ENV).toLowerCase() === "production";
+    const isProdLogout =
+      String(process.env.NODE_ENV).toLowerCase() === "production";
     const sameSite = isProdLogout ? "none" : "lax";
-    res.clearCookie("teampulse_token", { path: "/", secure: isProdLogout, sameSite });
+    res.clearCookie("teampulse_token", {
+      path: "/",
+      secure: isProdLogout,
+      sameSite,
+    });
     res.clearCookie("token", { path: "/", secure: isProdLogout, sameSite });
 
     return res.json({ success: true });

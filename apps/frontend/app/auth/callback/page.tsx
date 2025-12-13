@@ -2,19 +2,29 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { clearAllClientState } from "../../../components/Auth/autoCleanup";
+import { api } from "../../..//lib/api";
+import { useUserStore } from "../../..//store/userStore";
 
-export default function AuthCallback() {
+export default function AuthCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // We do NOT clear cookie here — cookie IS the login
-    clearAllClientState(); // clears local + session only
+    const finalize = async () => {
+      // give a tiny delay for cookie to be stored via proxy
+      await new Promise((r) => setTimeout(r, 250));
 
-    // allow cookie to sync (important)
-    setTimeout(() => {
-      router.replace("/dashboard");
-    }, 150);
+      try {
+        // This call goes to /api/v1/me which Next rewrites to backend.
+        // axios has withCredentials=true so cookie will be forwarded.
+        await useUserStore.getState().fetchUser();
+        router.replace("/dashboard");
+      } catch (err) {
+        // fallback: go to login
+        router.replace("/");
+      }
+    };
+
+    finalize();
   }, []);
 
   return <div className="p-6 text-lg">Finishing login…</div>;

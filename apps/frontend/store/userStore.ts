@@ -2,9 +2,7 @@
 
 import { create } from "zustand";
 import { api } from "../lib/api";
-import { useLiveStore } from "./liveStore";
-import { clearAllClientState, } from "../components/Auth/autoCleanup";
-import type { AxiosError } from "axios";
+import { isAxiosError } from "axios";
 
 interface User {
   id?: string;
@@ -13,144 +11,102 @@ interface User {
   email?: string;
   avatarUrl?: string;
   orgIds?: unknown[];
-  // Add other user properties as needed
   defaultOrgId?: string | null;
+}
+
+interface UserState {
+  user: User | null;
+  loading: boolean;
+  activeOrgId: string | null;
+  fetchUser: (opts?: { silent?: boolean }) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const normaliseOrgId = (value: unknown): string | null => {
   if (!value) return null;
   if (typeof value === "string") return value;
 
-  if (typeof value === "object") {
-    const maybeRecord = value as { _id?: unknown; toString?: () => string };
-    const maybeOid = (value as { $oid?: unknown }).$oid;
-    if (typeof maybeOid === "string") {
-      return maybeOid;
+  type IdLike = {
+    _id?: unknown;
+    $oid?: unknown;
+    toString?: () => string;
+  };
+
+  const toStringSafe = (v: unknown): string | null => {
+    if (typeof v === "string") return v;
+    if (v != null && typeof (v as { toString?: () => string }).toString === "function") {
+      const s = (v as { toString: () => string }).toString();
+      return typeof s === "string" ? s : null;
     }
-
-    if (typeof maybeRecord._id === "string") {
-      return maybeRecord._id;
-    }
-
-    if (maybeRecord._id && typeof maybeRecord._id === "object") {
-      const nested = maybeRecord._id as { toString?: () => string };
-      if (typeof nested.toString === "function") {
-        const result = nested.toString();
-        if (typeof result === "string" && result !== "[object Object]") {
-          return result;
-        }
-      }
-    }
-
-    if (typeof maybeRecord.toString === "function") {
-      const fallback = maybeRecord.toString();
-      if (typeof fallback === "string" && fallback !== "[object Object]") {
-        return fallback;
-      }
-    }
-  }
-
-  return null;
-};
-
-const extractPreferredOrgId = (orgIds: unknown): string | null => {
-  if (!Array.isArray(orgIds) || orgIds.length === 0) {
     return null;
-  }
+  };
 
-  for (let index = orgIds.length - 1; index >= 0; index -= 1) {
-    const normalised = normaliseOrgId(orgIds[index]);
-    if (normalised) {
-      return normalised;
-    }
+  if (typeof value === "object" && value !== null) {
+    const obj = value as IdLike;
+    return (
+      toStringSafe(obj._id) ??
+      (typeof obj.$oid === "string" ? obj.$oid : null) ??
+      toStringSafe(obj)
+    );
   }
-
   return null;
 };
 
-const orgIdExistsInList = (
-  orgIds: unknown,
-  candidate: string | null
-): boolean => {
-  if (!candidate || !Array.isArray(orgIds)) {
-    return false;
-  }
-
-  return orgIds.some((entry) => normaliseOrgId(entry) === candidate);
-};
-
-interface UserState {
-  user: User | null;
-  loading: boolean;
-  activeOrgId: string | null;
-  initFromUrl: () => void;
-  fetchUser: () => Promise<void>;
-  setActiveOrgId: (
-    orgId: string | null,
-    options?: { refetch?: boolean }
-  ) => void;
-  logout: () => Promise<void>;
-}
-
-export const useUserStore = create<UserState>((set) => ({
+export const useUserStore = create<UserState>((set, get) => ({
   user: null,
   loading: true,
   activeOrgId: null,
 
-  // No token management on client; cookie is set by backend
-  initFromUrl: () => {},
+  fetchUser: async (opts) => {
+    try {
+      // prevent double calls
+      if (get().loading === false && opts?.silent) return;
 
-  fetchUser: async () => {
-  try {
-    const res = await api.get("/me");
-    const rawUser = res.data?.data?.user ?? null;
+      const res = await api.get("/me");
+      const rawUser = res.data?.data?.user ?? null;
 
-    if (!rawUser) {
-      throw new Error("Invalid user response");
-    }
+      set({
+        user: rawUser,
+        activeOrgId: normaliseOrgId(rawUser?.defaultOrgId),
+        loading: false,
+      });
+    } catch (err) {
+      if (isAxiosError(err)) {
+        const status = err.response?.status;
 
-    const defaultOrgId = normaliseOrgId(rawUser.defaultOrgId);
+        // 🚫 DO NOT logout on first 401
+        if (status === 401) {
+          set((s) => ({
+            ...s,
+            loading: false,
+          }));
+          return;
+        }
+      }
 
-    set({
-      user: rawUser,
-      loading: false,
-      activeOrgId: defaultOrgId,
-    });
-  } catch (err: unknown) {
-    const status = (err as AxiosError | undefined)?.response?.status;
-
-    // ONLY consider stale when /me fails
-    if (status === 401 || status === 404) {
-      // stale cookie or deleted user
-      clearAllClientState();
-
-      set({ user: null, loading: false, activeOrgId: null });
-      return;
-    }
-
-    set({
-      user: null,
-      loading: false,
-      activeOrgId: null,
-    });
-  }
-},
-
-  setActiveOrgId: (orgId, options) => {
-    const normalised = normaliseOrgId(orgId);
-    set({ activeOrgId: normalised });
-
-    if (options?.refetch) {
-      useUserStore.getState().fetchUser();
+      set({
+        user: null,
+        activeOrgId: null,
+        loading: false,
+      });
     }
   },
 
-  // Logout clears cookie server-side and resets store
   logout: async () => {
     try {
       await api.delete("/auth/logout");
     } catch {}
-    set({ user: null, loading: false, activeOrgId: null });
-    return Promise.resolve();
+
+    // logout is the ONLY place we hard reset
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch {}
+
+    set({
+      user: null,
+      activeOrgId: null,
+      loading: false,
+    });
   },
 }));
